@@ -26,5 +26,9 @@ exec 1>&2 # ensure any output is sent to stderr
 #
 # Allow other modules to call our *-route actions by requiring the "routeadm" role
 #
+redis-exec SADD "${AGENT_ID}/roles/routeadm" "delete-route" "set-route" "get-route" "list-routes"
 
-redis-exec SADD "${AGENT_ID}/roles/routeadm" "delete-route" "set-route"
+#
+# Allow other modules to call our *-certificate actions by requiring the "certadm" role
+#
+redis-exec SADD "${AGENT_ID}/roles/certadm" "delete-certificate" "set-certificate" "get-certificate" "list-certificates"

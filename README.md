@@ -2,17 +2,22 @@
 
 This module implements a proxy for web applications using [Traefik](https://doc.traefik.io/traefik/).
 
-The module exposes 2 actions:
-- `set-route`
-- `get-route`
-- `delete-route`
-- `list-routes`
-- `set-certificate`
-- `get-certificate`
-- `delete-certificate`
-- `list-certificates`
-- `set-acme-server`
-- `get-acme-server`
+The following table summarizes the available actions and the role(s)
+required to invoke them. For simplicity, the builtin `owner` and `reader`
+roles are omitted.
+
+| Action      | Roles    |
+|-------------|----------|
+| `set-route` | routeadm |
+| `get-route` | routeadm |
+| `delete-route` | routeadm |
+| `list-routes` | routeadm |
+| `set-certificate` | certadm |
+| `get-certificate` | certadm |
+| `delete-certificate` | certadm |
+| `list-certificates` | certadm |
+| `set-acme-server` | |
+| `get-acme-server` | |
 
 ## set-route
 
