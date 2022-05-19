@@ -41,7 +41,9 @@ path = sys.argv[1]
 
 try:
     data = json.load(open(path))
-    certificates = data["acmeServer"].get("Certificates", [])
+    certificates = data["acmeServer"]["Certificates"]
+    if certificates is None: # Certificate request is pending, skip silently
+        certificates = []
 except Exception as ex:
     print(agent.SD_WARNING + f"ACME TLS certificates for Traefik were not found in {path}: {ex}", file=sys.stderr)
     sys.exit(0)
