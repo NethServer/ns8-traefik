@@ -60,5 +60,5 @@ for info in certificates:
         # signal the certificate-updated event
         event_key = f'module/{module_id}/event/certificate-updated'
         print(f'Publishing event {event_key}')
-        event = {"certificate": info["certificate"], "key": info["key"], "node": node_id, "module": module_id, "domain": info["domain"]}
+        event = {"rkey": rkey, "node": node_id, "module": module_id, "domain": info["domain"]}
         rdb.publish(event_key, json.dumps(event))
