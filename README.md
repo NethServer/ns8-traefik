@@ -52,7 +52,7 @@ Only `host`
 api-cli run set-route --agent module/traefik1 --data - <<EOF
 {
   "instance": "module1",
-  "url": "http://127.0.0.0:2000",
+  "url": "http://127.0.0.1:2000",
   "host": "module.example.org",
   "lets_encrypt": true,
   "http2https": true
@@ -65,7 +65,7 @@ EOF
 api-cli run set-route --agent module/traefik1 --data - <<EOF
 {
   "instance": "module1",
-  "url": "http://127.0.0.0:2000",
+  "url": "http://127.0.0.1:2000",
   "host": "module.example.org",
   "path": "/foo",
   "lets_encrypt": true,
@@ -79,7 +79,7 @@ Only `path`
 api-cli run set-route --agent module/traefik1 --data - <<EOF
 {
   "instance": "module1",
-  "url": "http://127.0.0.0:2000",
+  "url": "http://127.0.0.1:2000",
   "path": "/foo",
   "lets_encrypt": true,
   "http2https": true
@@ -100,7 +100,7 @@ api-cli run get-route --agent module/traefik1 --data '{"instance": "module1"}'
 
 Output:
 ```json
-{"instance": "module3", "host": "module.example.org", "path": "/foo", "url": "http://127.0.0.0:2000", "lets_encrypt": true, "http2https": true, "strip_prefix": false}
+{"instance": "module3", "host": "module.example.org", "path": "/foo", "url": "http://127.0.0.1:2000", "lets_encrypt": true, "http2https": true, "strip_prefix": false}
 ```
 
 ## delete-route
@@ -143,7 +143,7 @@ Output:
   {
     "instance": "module1",
     "host": "module.example.org",
-    "url": "http://127.0.0.0:2000",
+    "url": "http://127.0.0.1:2000",
     "lets_encrypt": true,
     "http2https": true
   },
@@ -151,7 +151,7 @@ Output:
     "instance": "module2",
     "host": "module.example.org",
     "path": "/foo",
-    "url": "http://127.0.0.0:2000",
+    "url": "http://127.0.0.1:2000",
     "lets_encrypt": true,
     "http2https": true,
     "strip_prefix": false
@@ -159,7 +159,7 @@ Output:
   {
     "instance": "module3",
     "path": "/foo",
-    "url": "http://127.0.0.0:2000",
+    "url": "http://127.0.0.1:2000",
     "lets_encrypt": false,
     "http2https": true,
     "strip_prefix": false
