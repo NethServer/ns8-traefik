@@ -125,8 +125,8 @@ else:
     
 # Setup forward route
 if data.get("forward_auth"):
-    r.set(f'{middlewares}/{data["instance"]}/forwardAuth/address', f'{data["address"]}')
-    r.set(f'{middlewares}/{data["instance"]}/forwardAuth/tls/insecureSkipVerify', f'{data["skip_tls_verify"]}')
+    r.set(f'{middlewares}/{data["instance"]}/forwardAuth/address', f'{data["forward_auth"]["address"]}')
+    r.set(f'{middlewares}/{data["instance"]}/forwardAuth/tls/insecureSkipVerify', f'{data["forward_auth"]["skip_tls_verify"]}')
 
 # Write the configuration on redis
 r.execute()
