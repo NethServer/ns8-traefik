@@ -129,6 +129,11 @@ if data.get("forward_auth"):
     r.set(f'{middlewares}/{data["instance"]}-auth/forwardAuth/tls/insecureSkipVerify', f'{data["forward_auth"]["skip_tls_verify"]}')
     r.set(f'{router}/middlewares/3', f'{data["instance"]}-auth')
     r.set(f'{router_s}/middlewares/3', f'{data["instance"]}-auth')
+else:
+    r.delete(f'{middlewares}/{data["instance"]}-auth/forwardAuth/address')
+    r.delete(f'{middlewares}/{data["instance"]}-auth/forwardAuth/tls/insecureSkipVerify')
+    r.delete(f'{router}/middlewares/3')
+    r.delete(f'{router_s}/middlewares/3')
 
 # Write the configuration on redis
 r.execute()
