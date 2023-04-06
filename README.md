@@ -57,6 +57,13 @@ This is the priority of the rules type evaluation (top-down):
         }
       }
 ```
+- `forward_auth`: prop to configure the forwardAuth config, to remove the the header an empty value must be set. Example:
+```json
+      "forward_auth": {
+        "address": "http://127.0.0.1:9311/api/module/test/http-basic/test-action",
+        "skip_tls_verify": true
+      }
+```
 
 ### Examples
 
@@ -96,6 +103,23 @@ api-cli run set-route --agent module/traefik1 --data - <<EOF
   "path": "/foo",
   "lets_encrypt": true,
   "http2https": true
+}
+EOF
+```
+
+With `forward_auth`
+```
+api-cli run set-route --agent module/traefik1 --data - <<EOF
+{
+  "instance": "module1",
+  "url": "http://127.0.0.1/add-module1",
+  "host": "127.0.0.1",
+  "lets_encrypt": false,
+  "http2https": false,
+  "forward_auth": {
+      "address": "http://127.0.0.1:9311/api/module/module1/http-basic/add-module1",
+      "skip_tls_verify": true
+  }
 }
 EOF
 ```
