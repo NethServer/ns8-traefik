@@ -122,6 +122,11 @@ if data.get('user_created') is not None and data["user_created"] is True:
     r.sadd(f'{agent_id}/user_created_routes', data["instance"])
 else:
     r.srem(f'{agent_id}/user_created_routes', data["instance"])
+    
+# Setup forward route
+if data.get("forward_auth"):
+    r.set(f'{middlewares}/{data["instance"]}/forwardAuth/address', f'{data["address"]}')
+    r.set(f'{middlewares}/{data["instance"]}/forwardAuth/tls/insecureSkipVerify', f'{data["skip_tls_verify"]}')
 
 # Write the configuration on redis
 r.execute()
