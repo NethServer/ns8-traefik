@@ -101,11 +101,11 @@ def get_route(data):
         if middlewares and f'{module}-auth@redis' in middlewares:
             try:
                 with urllib.request.urlopen(f'http://127.0.0.1/{api_path}/api/http/middlewares/{module}-auth@redis') as res:
-                    route['auth'] = {}
+                    route['forward_auth'] = {}
                     auth_middleware = json.load(res)
 
-                    route['auth']['address'] = auth_middleware['forwardAuth']['address']
-                    route['auth']['skip_tls_verify'] = auth_middleware['forwardAuth']['insecureSkipVerify']
+                    route['forward_auth']['address'] = auth_middleware['forwardAuth']['address']
+                    route['forward_auth']['skip_tls_verify'] = auth_middleware['forwardAuth']['tls']['insecureSkipVerify']
 
             except urllib.error.HTTPError as e:
                 raise Exception(f'Error reaching traefik daemon (middlewares): {e.reason}')
