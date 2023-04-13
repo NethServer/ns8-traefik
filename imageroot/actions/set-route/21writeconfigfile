@@ -30,8 +30,8 @@ router_s=f'{prefix}/routers/{data["instance"]}-https'
 middlewares=f'{prefix}/middlewares'
 
 # Cleanup headers middleware from route
-r.delete(f'{router}/middlewares/2')
-r.delete(f'{router_s}/middlewares/2')
+r.delete(f'{router}/middlewares/30')
+r.delete(f'{router_s}/middlewares/30')
 
 # Remove previous configuration
 p = Path(f'configs/{data["instance"]}-route.yml')
@@ -61,7 +61,7 @@ if middlewares:
 if route['http']:
     with open(p.resolve(), 'w') as file:
         yaml.dump(route, file)
-    r.set(f'{router}/middlewares/2', f'{data["instance"]}-headers@file')
-    r.set(f'{router_s}/middlewares/2', f'{data["instance"]}-headers@file')
+    r.set(f'{router}/middlewares/30', f'{data["instance"]}-headers@file')
+    r.set(f'{router_s}/middlewares/30', f'{data["instance"]}-headers@file')
 
 r.close()
