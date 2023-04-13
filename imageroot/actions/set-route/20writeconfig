@@ -126,7 +126,7 @@ else:
 # Setup forward route
 if data.get("forward_auth"):
     r.set(f'{middlewares}/{data["instance"]}-auth/forwardAuth/address', f'{data["forward_auth"]["address"]}')
-    r.set(f'{middlewares}/{data["instance"]}-auth/forwardAuth/tls/insecureSkipVerify', f'{data["forward_auth"]["skip_tls_verify"]}')
+    r.set(f'{middlewares}/{data["instance"]}-auth/forwardAuth/tls/insecureSkipVerify', f'{data["forward_auth"].get("skip_tls_verify", False)}')
     r.set(f'{router}/middlewares/3', f'{data["instance"]}-auth')
     r.set(f'{router_s}/middlewares/3', f'{data["instance"]}-auth')
 else:

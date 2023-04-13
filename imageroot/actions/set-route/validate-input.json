@@ -161,6 +161,9 @@
         },
         "forward_auth": {
             "type": "object",
+            "required": [
+                "address"
+            ],
             "title": "Forward Auth configuration",
             "description": "If set enabled forwardAuth prop on traefik",
             "properties": {
