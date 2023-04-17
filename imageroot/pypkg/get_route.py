@@ -97,21 +97,22 @@ def get_route(data):
 
             except urllib.error.HTTPError as e:
                 raise Exception(f'Error reaching traefik daemon (middlewares): {e.reason}')
-        
+
         if middlewares and f'{module}-auth@redis' in middlewares:
             try:
                 with urllib.request.urlopen(f'http://127.0.0.1/{api_path}/api/http/middlewares/{module}-auth@redis') as res:
-                    route['forward_auth'] = {}
                     auth_middleware = json.load(res)
-
-                    route['forward_auth']['address'] = auth_middleware['forwardAuth']['address']
-                    try:
-                        route['forward_auth']['skip_tls_verify'] = auth_middleware['forwardAuth']['tls']['insecureSkipVerify']
-                    except KeyError:
-                        pass
-
             except urllib.error.HTTPError as e:
                 raise Exception(f'Error reaching traefik daemon (middlewares): {e.reason}')
+
+            route['forward_auth'] = {
+                'address': auth_middleware['forwardAuth']['address'],
+            }
+            try:
+                route['forward_auth']['skip_tls_verify'] = auth_middleware['forwardAuth']['tls']['insecureSkipVerify']
+            except KeyError:
+                # The TLS skip certificate verification flag may be missing completely: ignore.
+                pass
 
     except urllib.error.HTTPError as e:
         if e.code == 404:
