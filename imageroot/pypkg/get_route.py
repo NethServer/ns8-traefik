@@ -105,7 +105,10 @@ def get_route(data):
                     auth_middleware = json.load(res)
 
                     route['forward_auth']['address'] = auth_middleware['forwardAuth']['address']
-                    route['forward_auth']['skip_tls_verify'] = auth_middleware['forwardAuth']['tls']['insecureSkipVerify']
+                    try:
+                        route['forward_auth']['skip_tls_verify'] = auth_middleware['forwardAuth']['tls']['insecureSkipVerify']
+                    except KeyError:
+                        pass
 
             except urllib.error.HTTPError as e:
                 raise Exception(f'Error reaching traefik daemon (middlewares): {e.reason}')
