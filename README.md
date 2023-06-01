@@ -18,6 +18,7 @@ roles are omitted.
 | `list-certificates` | certadm, fulladm |
 | `set-acme-server` | |
 | `get-acme-server` | |
+| `upload-certificate` | |
 
 ## set-route
 
@@ -316,4 +317,17 @@ api-cli run get-acme-server  --agent module/traefik1
 Output:
 ```
 {"url": "https://acme-staging-v02.api.letsencrypt.org/directory"}
+```
+
+## upload-certificate
+
+Action allowing the upload of custom certificates to Traefik.
+
+Action takes two parameters:
+- `certFile`: Certificate (or a chain of certificates) to upload, base64 encoded.
+- `keyfile`: Key used to generate the certificate, also base64 encoded.
+
+Example:
+```
+api-cli run module/traefik1/upload-certificate --data '{"certFile":"LS0tLS1CRUdJTiBSU0EgU...","keyFile":"LS0tLS1CRUdJTiBSU0EgU..."}'
 ```
