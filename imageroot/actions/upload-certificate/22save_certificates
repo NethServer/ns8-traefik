@@ -1,0 +1,29 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+CERT_FILE=uploaded_cert
+KEY_FILE=uploaded_key
+
+# delete files after exit
+trap 'rm -f $KEY_FILE $CERT_FILE' EXIT
+
+# extract common name
+cn_name=$(openssl x509 -noout -subject -nameopt=multiline -in $CERT_FILE | sed -n 's/ *commonName *= //p')
+
+# copy certificate in traefik shared directory
+cp $KEY_FILE "custom_certificates/$cn_name.key"
+cp $CERT_FILE "custom_certificates/$cn_name.crt"
+
+# write configuration file for certificate
+cat >"configs/certificate_${cn_name}.yml" <<EOF
+tls:
+  certificates:
+    - certFile: /etc/traefik/custom_certificates/$cn_name.crt
+      keyFile: /etc/traefik/custom_certificates/$cn_name.key
+EOF

@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+
+CERT_FILE=uploaded_cert
+KEY_FILE=uploaded_key
+
+del_certs() {
+    rm -f $KEY_FILE $CERT_FILE
+}
+
+# checking if key is valid
+if [ "$(openssl rsa -check -in $KEY_FILE >/dev/null 2>&1)" ]; then
+    echo "Key validation failed."
+    del_certs
+    exit 1
+fi
+
+# check if cert is provided by key
+cert_hash="$(openssl x509 -noout -modulus -in $CERT_FILE | openssl md5)"
+key_hash="$(openssl rsa -noout -modulus -in $KEY_FILE | openssl md5)"
+if [ "$cert_hash" != "$key_hash" ]; then
+    echo "Key didn't generate certificate."
+    del_certs
+    exit 1
+fi
+
+# check if certificate is properly pam formatted
+if [ "$(openssl x509 -text -noout -in $CERT_FILE >/dev/null 2>&1)" ]; then
+    echo "Certificate not well formatted."
+    del_certs
+    exit 1
+fi

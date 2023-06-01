@@ -84,5 +84,8 @@ EOF
 #
 mkdir configs
 
+# Create uploaded certificates folder
+mkdir custom_certificates
+
 # Enable and start the services
 systemctl --user enable --now traefik.service

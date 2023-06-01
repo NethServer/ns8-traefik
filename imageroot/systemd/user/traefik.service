@@ -19,6 +19,7 @@ ExecStart=/usr/bin/podman run \
     --volume=./selfsigned.crt:/etc/traefik/selfsigned.crt:Z \
     --volume=./selfsigned.key:/etc/traefik/selfsigned.key:Z \
     --volume=./configs:/etc/traefik/configs:Z \
+    --volume=./custom_certificates:/etc/traefik/custom_certificates:Z \
     ${TRAEFIK_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/traefik.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/traefik.ctr-id

@@ -122,7 +122,7 @@ if data.get('user_created') is not None and data["user_created"] is True:
     r.sadd(f'{agent_id}/user_created_routes', data["instance"])
 else:
     r.srem(f'{agent_id}/user_created_routes', data["instance"])
-    
+
 # Setup forward route
 if data.get("forward_auth"):
     r.set(f'{middlewares}/{data["instance"]}-auth/forwardAuth/address', f'{data["forward_auth"]["address"]}')
