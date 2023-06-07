@@ -15,10 +15,17 @@ del_certs() {
 }
 
 # checking if key is valid
-if [ "$(openssl rsa -check -in $KEY_FILE >/dev/null 2>&1)" ]; then
+if ! openssl rsa -check -in $KEY_FILE >/dev/null 2>&1; then
     echo "Key validation failed."
     del_certs
-    exit 1
+    exit 2
+fi
+
+# check if certificate is properly pam formatted
+if ! openssl x509 -text -noout -in $CERT_FILE >/dev/null 2>&1; then
+    echo "Certificate not well formatted."
+    del_certs
+    exit 4
 fi
 
 # check if cert is provided by key
@@ -27,12 +34,5 @@ key_hash="$(openssl rsa -noout -modulus -in $KEY_FILE | openssl md5)"
 if [ "$cert_hash" != "$key_hash" ]; then
     echo "Key didn't generate certificate."
     del_certs
-    exit 1
-fi
-
-# check if certificate is properly pam formatted
-if [ "$(openssl x509 -text -noout -in $CERT_FILE >/dev/null 2>&1)" ]; then
-    echo "Certificate not well formatted."
-    del_certs
-    exit 1
+    exit 3
 fi
