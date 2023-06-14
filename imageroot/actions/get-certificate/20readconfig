@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #
-# Copyright (C) 2022 Nethesis S.r.l.
+# Copyright (C) 2023 Nethesis S.r.l.
 # http://www.nethesis.it - nethserver@nethesis.it
 #
 # This script is part of NethServer.
@@ -22,9 +22,17 @@
 
 import json
 import sys
+
+from custom_certificate_manager import info_custom_certificate
 from get_certificate import get_certificate
 
 # Try to parse the stdin as JSON.
 # If parsing fails, output everything to stderr
 
-json.dump(get_certificate(json.load(sys.stdin)), fp=sys.stdout)
+data = json.load(sys.stdin)
+try:
+    cert_info = info_custom_certificate(data['fqdn'])
+except FileNotFoundError:
+    cert_info = get_certificate(data)
+
+json.dump(cert_info, fp=sys.stdout)
