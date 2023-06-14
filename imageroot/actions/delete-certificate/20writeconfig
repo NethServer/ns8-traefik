@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #
-# Copyright (C) 2021 Nethesis S.r.l.
+# Copyright (C) 2023 Nethesis S.r.l.
 # http://www.nethesis.it - nethserver@nethesis.it
 #
 # This script is part of NethServer.
@@ -32,6 +32,8 @@ import sys
 import os
 import agent
 
+from custom_certificate_manager import delete_custom_certificate
+
 # Try to parse the stdin as JSON.
 # If parsing fails, output everything to stderr
 data = json.load(sys.stdin)
@@ -40,23 +42,26 @@ agent_id = os.getenv("AGENT_ID", "")
 if not agent_id:
     raise Exception("AGENT_ID not found inside the environemnt")
 
-# Connect to redis
-rdb = agent.redis_connect(privileged=True).pipeline()
+try:
+    delete_custom_certificate(data['fqdn'])
+except FileNotFoundError:
+    # Connect to redis
+    rdb = agent.redis_connect(privileged=True).pipeline()
 
-# Prepare common key prefix
-router=f'{agent_id}/kv/http/routers/certificate-{data["fqdn"]}'
+    # Prepare common key prefix
+    router=f'{agent_id}/kv/http/routers/certificate-{data["fqdn"]}'
 
-# Remove HTTPS router
-rdb.delete(f'{router}/entrypoints')
-rdb.delete(f'{router}/rule')
-rdb.delete(f'{router}/priority')
-rdb.delete(f'{router}/service')
-rdb.delete(f'{router}/tls')
-rdb.delete(f'{router}/tls/domains/0/main')
-rdb.delete(f'{router}/tls/certresolver')
+    # Remove HTTPS router
+    rdb.delete(f'{router}/entrypoints')
+    rdb.delete(f'{router}/rule')
+    rdb.delete(f'{router}/priority')
+    rdb.delete(f'{router}/service')
+    rdb.delete(f'{router}/tls')
+    rdb.delete(f'{router}/tls/domains/0/main')
+    rdb.delete(f'{router}/tls/certresolver')
 
-# Write the configuration on redis
-rdb.execute()
+    # Write the configuration on redis
+    rdb.execute()
 
 # Output valid JSON
 print("true")
