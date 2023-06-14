@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #
-# Copyright (C) 2022 Nethesis S.r.l.
+# Copyright (C) 2023 Nethesis S.r.l.
 # http://www.nethesis.it - nethserver@nethesis.it
 #
 # This script is part of NethServer.
@@ -41,6 +41,7 @@ def get_certificate(data):
             return {}
 
         certificate['fqdn'] = fqdn
+        certificate['type'] = 'internal'
 
         certificate['obtained'] = False
 
