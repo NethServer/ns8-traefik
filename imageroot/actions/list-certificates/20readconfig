@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #
-# Copyright (C) 2022 Nethesis S.r.l.
+# Copyright (C) 2023 Nethesis S.r.l.
 # http://www.nethesis.it - nethserver@nethesis.it
 #
 # This script is part of NethServer.
@@ -25,6 +25,8 @@ import os
 import agent
 import sys
 import urllib.request
+
+from custom_certificate_manager import list_custom_certificates
 from get_certificate import get_certificate
 
 
@@ -45,5 +47,7 @@ certificates = [ route['name'].removeprefix('certificate-').removesuffix('@redis
 
 if data != None and data.get('expand_list'):
     certificates = [ get_certificate({'fqdn': certificate}) for certificate in certificates ]
+
+certificates = certificates + list_custom_certificates()
 
 json.dump(certificates, fp=sys.stdout)
