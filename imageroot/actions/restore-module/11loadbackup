@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import os
+
+import agent
+
+with open('backup-custom-routes.json') as file:
+    backup = json.load(file)
+
+agent_id = os.getenv("AGENT_ID")
+if agent_id is None:
+    raise Exception("AGENT_ID not found inside the environemnt")
+
+for entry in backup:
+    task_data = {
+        'instance': entry['instance'],
+        'url':  entry['url'],
+        'http2https':  entry['http2https'],
+        'lets_encrypt': entry['lets_encrypt'],
+        'user_created': entry['user_created']
+    }
+    if 'host' in entry:
+        task_data['host'] = entry['host']
+
+    if 'path' in entry:
+        task_data['path'] = entry['path']
+
+    if 'strip_prefix' in entry:
+        task_data['strip_prefix'] = entry['strip_prefix']
+
+    if 'headers' in entry:
+        task_data['headers'] = entry['headers']
+
+    if 'forward_auth' in entry:
+        task_data['forward_auth'] = entry['forward_auth']
+
+    response = agent.tasks.run(
+        agent_id=agent_id,
+        action='set-route',
+        data=task_data,
+        extra={
+            'isNotificationHidden': True
+        },
+    )
+    agent.assert_exp(response['exit_code'] == 0)
