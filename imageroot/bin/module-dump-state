@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import os
+import json
+from urllib.request import urlopen
+
+from get_route import get_route
+
+api_path = os.getenv("API_PATH")
+if api_path is None:
+    raise RuntimeError("API_PATH not found inside the environment.")
+
+with urlopen(f'http://127.0.0.1/{api_path}/api/http/routers') as response:
+    traefik_routes = json.load(response)
+
+routes = []
+for route in traefik_routes:
+    # Strip prefixes from traefik response
+    route = route['name'].removesuffix('-https@redis')
+    # Remove default `/cluster-admin` route
+    if route == 'ApiServer':
+        continue
+
+    # Get details for each route
+    route = get_route({'instance': route})
+    # Save only custom routes
+    if 'user_created' not in route or not route['user_created']:
+        continue
+
+    routes.append(route)
+
+with open('backup-custom-routes.json', 'w', encoding='UTF-8') as file:
+    json.dump(routes, file)
