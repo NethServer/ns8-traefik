@@ -34,5 +34,3 @@ for evar in [
         "ACME_SERVER_URL",
     ]:
     agent.set_env(evar, original_environment[evar])
-
-agent.dump_env()

@@ -28,5 +28,3 @@ import os
 data = json.load(sys.stdin)
 
 agent.set_env("ACME_SERVER_URL", data["url"])
-
-agent.dump_env()
