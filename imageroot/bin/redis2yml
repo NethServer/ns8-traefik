@@ -44,7 +44,10 @@ for kv in rdb.scan_iter(f'{prefix}http/*'):
                 middlewares[tmp[1]][tmp[2]][tmp[3]] = list()
             middlewares[tmp[1]][tmp[2]][tmp[3]].append(value)
         else:
-            middlewares[tmp[1]][tmp[2]][tmp[3]] = value
+            if len(tmp) > 4 and tmp[4] == "insecureSkipVerify":
+                middlewares[tmp[1]][tmp[2]][tmp[3]][tmp[4]] = (value == 'True')
+            else:
+                middlewares[tmp[1]][tmp[2]][tmp[3]] = value
     elif tmp[0] == "services":
         if tmp[1] not in services:
             services[tmp[1]] = { "loadBalancer": { "servers": list() } }
