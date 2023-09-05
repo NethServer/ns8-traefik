@@ -45,6 +45,8 @@ for kv in rdb.scan_iter(f'{prefix}http/*'):
             middlewares[tmp[1]][tmp[2]][tmp[3]].append(value)
         else:
             if len(tmp) > 4 and tmp[4] == "insecureSkipVerify":
+                if tmp[3] not in middlewares[tmp[1]][tmp[2]]:
+                    middlewares[tmp[1]][tmp[2]][tmp[3]] = {"insecureSkipVerify": False}
                 middlewares[tmp[1]][tmp[2]][tmp[3]][tmp[4]] = (value == 'True')
             else:
                 middlewares[tmp[1]][tmp[2]][tmp[3]] = value
