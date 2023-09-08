@@ -24,7 +24,7 @@ services = {}
 routers = {}
 
 prefix = f'module/{instance}/kv/'
-rdb = agent.redis_connect(host='127.0.0.1', privileged = True)
+rdb = agent.redis_connect(privileged = True)
 
 # HTTP
 for kv in rdb.scan_iter(f'{prefix}http/*'):
