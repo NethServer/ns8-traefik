@@ -97,7 +97,13 @@ try:
 except:
     pass
 
+mroutes = rdb.smembers(f'module/{instance}/user_created_routes')
+os.makedirs("manual_flags", exist_ok=True)
+
 for service in services:
+    if service in mroutes:
+        with open(f'manual_flags/{service}', 'w') as ffp:
+            pass
     config_service = {"http": { "middlewares": {}, "routers": {}, "services": {service: services[service]}}}
     for router in routers:
         if router.startswith(f'{service}-'):
