@@ -82,20 +82,17 @@ for r in routers:
     if "tls" in routers[r] and (not routers[r]["tls"]["certresolver"] and not routers[r]["tls"]["domains"]):
         routers[r]["tls"] = {}
 
-# Remove well-known configs 
-try:
-    middlewares.pop('http2https-redirectscheme')
-    middlewares.pop('ApisEndpointMw0')
-    middlewares.pop('ApisEndpointMw1')
-    middlewares.pop('ApiServerMw1')
-    middlewares.pop('ApiServerMw2')
-    middlewares.pop('ApiServer-stripprefix')
-    routers.pop('ApisEndpointHttp')
-    routers.pop('ApiServer-https')
-    routers.pop('ApiServer-http')
-    services.pop('ApiServer')
-except:
-    pass
+# Remove well-known configs
+middlewares.pop('http2https-redirectscheme', None)
+middlewares.pop('ApisEndpointMw0', None)
+middlewares.pop('ApisEndpointMw1', None)
+middlewares.pop('ApiServerMw1', None)
+middlewares.pop('ApiServerMw2', None)
+middlewares.pop('ApiServer-stripprefix', None)
+routers.pop('ApisEndpointHttp', None)
+routers.pop('ApiServer-https', None)
+routers.pop('ApiServer-http', None)
+services.pop('ApiServer', None)
 
 mroutes = rdb.smembers(f'module/{instance}/user_created_routes')
 os.makedirs("manual_flags", exist_ok=True)
