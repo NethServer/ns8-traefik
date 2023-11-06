@@ -12,22 +12,29 @@ import urllib.request
 
 def get_certificate(data):
     try:
-        fqdn = data['fqdn']
+        name = data.get('name','')
+        fqdn = data.get('fqdn','')
         certificate = {}
         api_path = os.environ["API_PATH"]
         moduleid = os.environ["MODULE_ID"]
 
-        # Get the certificate route from the API
-        with urllib.request.urlopen(f'http://127.0.0.1/{api_path}/api/http/routers/certificate-{fqdn}@file') as res:
-            traefik_https_route = json.load(res)
+        # we retrieve route and certificate for list-certificates action
+        if name != "":
+            with urllib.request.urlopen(f'http://127.0.0.1/{api_path}/api/http/routers/{name}') as res:
+                traefik_https_route = json.load(res)
+
+        # we retrieve cert from fqdn for backward compatibility (it is an acme certificate)
+        elif fqdn != "":
+             with urllib.request.urlopen(f'http://127.0.0.1/{api_path}/api/http/routers/certificate-{fqdn}@file') as res:
+                 traefik_https_route = json.load(res)
 
         # Check if the route is ready to use
         if traefik_https_route['status'] == 'disabled':
             return {}
 
-        certificate['fqdn'] = fqdn
-        certificate['type'] = 'internal'
-
+        certificate['fqdn'] = traefik_https_route['tls']['domains'][0]['main']
+        # either from certificate or route (type could be also custom cert)
+        certificate['type'] = 'certificate' if traefik_https_route['name'].startswith('certificate-') else 'route'
         certificate['obtained'] = False
 
         # Open the certificates storage file
@@ -39,7 +46,7 @@ def get_certificate(data):
 
         # Check if the certificate is present in the storage
         for cert in certificates if certificates else []:
-            if cert['domain']['main'] == data['fqdn']:
+            if cert['domain']['main'] == certificate['fqdn']:
                 certificate['obtained'] = True
                 break
 
