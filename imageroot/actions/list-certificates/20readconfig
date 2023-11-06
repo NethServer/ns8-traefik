@@ -25,14 +25,18 @@ try:
         traefik_routes = json.load(res)
 except urllib.error.URLError as e:
     raise Exception(f'Error reaching traefik daemon: {e.reason}') from e
+certificates= []
 
-# Gernerate the list of certificates
-certificates = [ route['name'].removeprefix('certificate-').removesuffix('@file') for route in traefik_routes
-        if route['name'].startswith('certificate-') and route['name'].endswith('@file') ]
-
-if data != None and data.get('expand_list'):
-    certificates = [ get_certificate({'fqdn': certificate}) for certificate in certificates ]
-
+# list routes and retrieve either main for a simple list 
+# or name to use it inside the traefik API and list following type and valid acme cert
+for route in traefik_routes:
+     if "certResolver" in route.get("tls", {}) and route['status'] == 'enabled':
+         domains = route["tls"]["domains"]
+         if data != None and data.get('expand_list'):
+             # we do not use fqdn, we use name : certificate-sub.domain.com@file or nextcloud1-https@file
+             certificates.append(get_certificate({'name': route['name']}))
+         else:
+             certificates.append(domains[0]["main"])
 certificates = certificates + list_custom_certificates()
 
 json.dump(certificates, fp=sys.stdout)
