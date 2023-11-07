@@ -5,33 +5,44 @@
     "description": "Status of a requested certificate",
     "examples": [
         {
-        "fqdn": "example.com",
-	"obtained": "true"
-    }
+            "fqdn": "example.com",
+            "obtained": "true",
+            "type": "internal"
+        }
     ],
     "type": "object",
-    "oneOf":[
-	    {
-		    "required": [
-			    "fqdn",
-			    "obtained"
-		    ]
-	    },
-	    {
-		    "properties": {},
-		    "additionalProperties": false
-	    }
-    ],
-    "properties": {
-        "fqdn": {
-            "type":"string",
-            "format": "hostname",
-            "title": "A fully qualified domain name"
+    "oneOf": [
+        {
+            "type": "object",
+            "properties": {
+                "fqdn": {
+                    "type": "string",
+                    "format": "hostname",
+                    "title": "A fully qualified domain name"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "internal",
+                        "custom",
+                        "route"
+                    ],
+                    "title": "must be route, internal or custom"
+                },
+                "obtained": {
+                    "type": "boolean",
+                    "title": "true if the certificate was obtained correctly"
+                }
+            },
+            "required": [
+                "fqdn",
+                "type",
+                "obtained"
+            ]
         },
-        "obtained": {
-            "type":"boolean",
-            "title": "true if the certificate was obtained correctly"
+        {
+            "type": "object",
+            "additionalProperties": false
         }
-
-    }
+    ]
 }
