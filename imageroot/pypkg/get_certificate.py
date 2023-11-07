@@ -33,8 +33,8 @@ def get_certificate(data):
             return {}
 
         certificate['fqdn'] = traefik_https_route['tls']['domains'][0]['main']
-        # either from certificate or route (type could be also custom cert)
-        certificate['type'] = 'certificate' if traefik_https_route['name'].startswith('certificate-') else 'route'
+        # either from internal or route (type could be also custom cert)
+        certificate['type'] = 'internal' if traefik_https_route['name'].startswith('certificate-') else 'route'
         certificate['obtained'] = False
 
         # Open the certificates storage file
