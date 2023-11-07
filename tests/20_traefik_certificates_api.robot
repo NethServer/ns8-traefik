@@ -26,6 +26,7 @@ Get invalid cerficate status
     ${response} =  Run task    module/traefik1/get-certificate    {"fqdn": "example.com"}
     Should Be Equal As Strings    ${response['fqdn']}        example.com
     Should Be Equal As Strings    ${response['obtained']}    False
+    Should Be Equal As Strings    ${response['type']}    internal
 
 Get certificate list
     ${response} =  Run task    module/traefik1/list-certificates    null
@@ -35,6 +36,7 @@ Get expanded certificate list
     ${response} =  Run task    module/traefik1/list-certificates    {"expand_list": true}
     Should Be Equal As Strings    ${response[0]['fqdn']}        example.com
     Should Be Equal As Strings    ${response[0]['obtained']}    False
+    Should Be Equal As Strings    ${response[0]['type']}    internal
 
 Delete certificate
     Run task    module/traefik1/delete-certificate   	 {"fqdn": "example.com"}
