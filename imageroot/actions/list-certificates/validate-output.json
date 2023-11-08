@@ -28,13 +28,15 @@
         ]
     ],
     "type": "array",
-    "items": {
-        "anyOf": [
-            {
+    "oneOf": [
+        {
+            "items": {
                 "type": "string",
                 "format": "idn-hostname"
-            },
-            {
+            }
+        },
+        {
+            "items": {
                 "type": "object",
                 "properties": {
                     "fqdn": {
@@ -59,6 +61,6 @@
                     "obtained"
                 ]
             }
-        ]
-    }
+        }
+    ]
 }
