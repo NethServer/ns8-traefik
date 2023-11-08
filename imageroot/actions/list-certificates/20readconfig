@@ -37,6 +37,14 @@ for route in traefik_routes:
              certificates.append(get_certificate({'name': route['name']}))
          else:
              certificates.append(domains[0]["main"])
-certificates = certificates + list_custom_certificates()
+
+# Retrieve custom certificate
+if data != None and data.get('expand_list'):
+    certificates = certificates + list_custom_certificates()
+else:
+    certificates_custom = []
+    for item in list_custom_certificates():
+        certificates_custom.append(item["fqdn"])
+    certificates = certificates + certificates_custom
 
 json.dump(certificates, fp=sys.stdout)
