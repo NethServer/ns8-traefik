@@ -5,6 +5,9 @@
     "description": "Return a list of requested certificates fqdn",
     "examples": [
         [
+
+        ],
+        [
             "foo.domain.com",
             "nextcloud.domain.com",
             "webserver2.domain.com"
