@@ -30,14 +30,12 @@
     "type": "array",
     "anyOf": [
         {
-            "minItems": 1,
             "items": {
                 "type": "string",
                 "format": "idn-hostname"
             }
         },
         {
-            "minItems": 1,
             "items": {
                 "type": "object",
                 "properties": {
@@ -63,10 +61,6 @@
                     "obtained"
                 ]
             }
-        },
-        {
-            "minItems": 0,
-            "maxItems": 0
         }
     ]
 }
