@@ -10,9 +10,10 @@ This script syncs the hosts from traefik to redis.
 Allows to notify modules of the change.
 """
 
+import json
 import os
-import requests
 import re
+import requests
 
 import agent
 
@@ -36,5 +37,5 @@ for route in response:
         for host in rule_hosts:
             redis_pipeline.sadd(f'{agent_id}/hosts', host)
 
-redis_pipeline.publish(f'{agent_id}/event/hosts-changed', '')
+redis_pipeline.publish(f'{agent_id}/event/hosts-changed', json.dumps({'node_id': os.environ['NODE_ID']}))
 redis_pipeline.execute()
