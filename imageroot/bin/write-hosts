@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2024 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+"""
+This script syncs the hosts from traefik to redis.
+Allows to notify modules of the change.
+"""
+
+import os
+import requests
+import re
+
+import agent
+
+# Fetch router list from traefik
+api_path = os.environ["API_PATH"]
+try:
+    response = requests.get(f'http://127.0.0.1/{api_path}/api/http/routers').json()
+except requests.exceptions.RequestException as e:
+    raise Exception(f'Error reaching traefik daemon: {e}')
+
+# Connect to redis using module credentials
+agent_id = os.getenv("AGENT_ID")
+redis_client = agent.redis_connect(privileged=True)
+# Write pipeline to redis
+redis_pipeline = redis_client.pipeline()
+redis_pipeline.delete(f'{agent_id}/hosts')
+for route in response:
+    if 'rule' in route and 'Host' in route['rule']:
+        # Extract the hosts from the rule
+        rule_hosts = re.findall(r'Host\(`(.*?)`\)', route['rule'])
+        for host in rule_hosts:
+            redis_pipeline.sadd(f'{agent_id}/hosts', host)
+
+redis_pipeline.publish(f'{agent_id}/event/hosts-changed', '')
+redis_pipeline.execute()
