@@ -21,7 +21,7 @@ ExecStart=/usr/bin/podman run \
     --volume=./configs:/etc/traefik/configs:Z \
     --volume=./custom_certificates:/etc/traefik/custom_certificates:Z \
     ${TRAEFIK_IMAGE}
-ExecStartPost=runagent -m %N write-hosts
+ExecStartPost=runagent write-hosts
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/traefik.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/traefik.ctr-id
 PIDFile=%t/traefik.pid
