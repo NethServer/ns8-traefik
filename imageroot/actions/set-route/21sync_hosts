@@ -7,4 +7,4 @@
 
 # Call the write-hosts action to update the hosts file
 
-../bin/write-hosts
+write-hosts || :
