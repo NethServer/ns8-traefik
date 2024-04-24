@@ -13,16 +13,23 @@ Allows to notify modules of the change.
 import json
 import os
 import re
-import requests
+
+from urllib3.util import Retry
+from requests import Session
+from requests.adapters import HTTPAdapter
+from requests.exceptions import RequestException
 
 import agent
 
 # Fetch router list from traefik
 api_path = os.environ["API_PATH"]
-try:
-    response = requests.get(f'http://127.0.0.1/{api_path}/api/http/routers').json()
-except requests.exceptions.RequestException as e:
-    raise Exception(f'Error reaching traefik daemon: {e}')
+session = Session()
+retries = Retry(
+    backoff_factor=0.5,
+)
+session.mount('http://', HTTPAdapter(max_retries=retries))
+response = session.get(f'http://127.0.0.1/{api_path}/api/http/routers').json()
+session.close()
 
 # Connect to redis using module credentials
 agent_id = os.getenv("AGENT_ID")
