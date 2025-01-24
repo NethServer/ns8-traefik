@@ -59,6 +59,12 @@ def upgrade_http_to_v3(ohttp):
                     print(f"Removed entryPoints in {krouter}")
             if not 'ruleSyntax' in orouter:
                 orouter['ruleSyntax'] = 'v2' # mark route match syntax as obsolete
+            if 'tls' in orouter and orouter['name'].endswith("-https"):
+                try:
+                    del orouter['tls']['domains']
+                    print(f"Removed TLS domains in {krouter}")
+                except:
+                    pass
     if 'middlewares' in ohttp:
         for kmiddleware in ohttp['middlewares']:
             omw = ohttp['middlewares'][kmiddleware]

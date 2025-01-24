@@ -62,14 +62,10 @@ router_http['entryPoints'] = ["http"]
 router_https = copy.deepcopy(route)
 router_https['entryPoints'] = ["https"]
 router_https["tls"] = {}
-#router_https = route_s
-if data.get("host") is not None:
-    router_https["tls"]["domains"] = [{"main": data["host"]}]
 
 # Enable or disable Let's Encrypt certificate
-if data.get("host") is not None:
-    if data["lets_encrypt"]:
-        router_https["tls"]["certresolver"] = "acmeServer"
+if "host" in data and data["lets_encrypt"]:
+    router_https["tls"]["certResolver"] = "acmeServer"
 
 # Strip the path from the request
 if data.get("strip_prefix"):

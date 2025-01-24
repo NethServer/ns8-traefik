@@ -32,7 +32,7 @@ router = {
         'service': "ping@internal",
         'rule' :  f'Host(`{data["fqdn"]}`) && Path(`/{path}`)',
         'priority': '1',
-        'tls': { 'domains': [{'main': data["fqdn"]}], 'certresolver': "acmeServer"}
+        'tls': { 'domains': [{'main': data["fqdn"]}], 'certResolver': "acmeServer"}
         }
 
 # Write configuration file

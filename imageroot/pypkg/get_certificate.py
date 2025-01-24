@@ -9,6 +9,7 @@ import json
 import os
 import agent
 import urllib.request
+import re
 
 def get_certificate(data):
     try:
@@ -32,7 +33,13 @@ def get_certificate(data):
         if traefik_https_route['status'] == 'disabled':
             return {}
 
-        certificate['fqdn'] = traefik_https_route['tls']['domains'][0]['main']
+        try:
+            # Custom routes and routes generated as certificate requests have a main domain name:
+            certificate['fqdn'] = traefik_https_route['tls']['domains'][0]['main']
+        except (KeyError, IndexError):
+            # For HTTP routes, obtain the domain name from the rule expression:
+            omatch = re.search(r'Host\(`(.*?)`\)', traefik_https_route['rule'])
+            certificate['fqdn'] = omatch.group(1)
         # either from internal or route (type could be also custom cert)
         certificate['type'] = 'internal' if traefik_https_route['name'].startswith('certificate-') else 'route'
         certificate['obtained'] = False
