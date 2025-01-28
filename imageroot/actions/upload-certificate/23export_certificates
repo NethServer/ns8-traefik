@@ -11,6 +11,7 @@ import agent
 import sys
 import subprocess
 from base64 import b64decode
+import re
 
 
 module_id = os.environ['MODULE_ID']
@@ -22,16 +23,15 @@ data = json.load(sys.stdin)
 cert = b64decode(data["certFile"]).decode()
 key = b64decode(data["keyFile"]).decode()
 
-# read the common name from the certificate
+# read the common name from the certificate, in the same format used by the action validator
 result = subprocess.run(
-    ['openssl', 'x509', '-noout', '-subject', '-in', '/dev/stdin', '-nameopt', 'sep_multiline', '-nameopt', 'utf8'],
+    ['openssl', 'x509', '-noout', '-subject', '-nameopt', 'multiline', '-nameopt', 'utf8'],
     input=cert,
     capture_output=True,
     text=True
 )
 
-subject = result.stdout
-domain = {'main': subject.split("\n")[1].split("CN=")[1]}
+domain = {'main': re.search(r"^ *commonName *= ([^\n]+)$", result.stdout, flags=re.MULTILINE).group(1)}
 
 # save the certificate and key in redis
 rdb = agent.redis_connect(privileged=True)
