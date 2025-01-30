@@ -30,6 +30,20 @@ def upgrade_to_v3(static_cfg):
     agent.run_helper("cp", "-vfT", "traefik.yaml", "traefik.yaml.v2")
     agent.run_helper("cp", "-rvfT", "configs", "configs.v2")
     agent.run_helper("cp", "-rvfT", "custom_certificates", "custom_certificates.v2")
+    # Merge special routers for certificates into one default certificate:
+    defcert = {}
+    certificate_config_files = list(glob.glob("./configs/certificate-*.yml"))
+    for config_file in certificate_config_files:
+        try:
+            with open(config_file) as ofile:
+                certdyn = yaml.safe_load(ofile) or {}
+                upgrade_as_default_certificate(certdyn, defcert)
+        except Exception as ex:
+            print("ERROR", config_file, ex, file=sys.stderr)
+        os.unlink(config_file)
+        print("Remove certificate config file:", config_file, file=sys.stderr)
+    if defcert:
+        write_dynamic_config("./configs/_default_cert.yml", defcert)
     # Required configuration upgrade from v2 to v3 format:
     static_cfg['core']['defaultRuleSyntax'] = 'v3'
     for config_file in glob.glob("./configs/*.yml"):
@@ -42,6 +56,38 @@ def upgrade_to_v3(static_cfg):
         except Exception as ex:
             print("ERROR", config_file, ex, file=sys.stderr)
     write_static_cfg(static_cfg)
+
+def upgrade_as_default_certificate(certdyn, defcert):
+    """Transform the router TLS configuration into configuration for
+    defaultGeneratedCert."""
+    try:
+        _, router = certdyn['http']['routers'].popitem()
+        odomain = router['tls']['domains'].pop()
+        del certdyn['http']
+    except (KeyError, IndexError) as ex:
+        print("Certificate router parse error", ex, file=sys.stderr)
+        return # skip upgrade: the router is not as we expect
+    defcert.setdefault('tls', {
+        'stores': {
+            'default': {
+                'defaultGeneratedCert': {
+                    'resolver': 'acmeServer',
+                    'domain': {
+                        'main': odomain['main'],
+                        'sans': [],
+                    },
+                },
+            },
+        },
+    })
+    # Merge the domain main and sans keys into defaultGeneratedCert SANs set:
+    defdom = defcert['tls']['stores']['default']['defaultGeneratedCert']['domain']
+    sans = set(defdom.get('sans', []))
+    sans.add(odomain['main'])
+    sans.update(set(odomain.get('sans', [])))
+    sans.discard(defdom['main'])
+    defdom['sans'] = list(sans)
+    print("Recording names for defaultGeneratedCert:", defdom['main'], sans, file=sys.stderr)
 
 def upgrade_http_to_v3(ohttp):
     """Upgrade an http dynamic configuration to Traefik v3 format."""
