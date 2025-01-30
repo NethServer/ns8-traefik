@@ -99,14 +99,13 @@ def upgrade_http_to_v3(ohttp):
             is_certificate = krouter.startswith("certificate-")
             is_api = krouter == "ApisEndpointHttp"
             if type(orouter.get('entryPoints')) is str:
-                for kscheme in orouter['entryPoints'].split(","):
-                    if (is_http or is_https or is_certificate):
-                        orouter['entryPoints'] = [kscheme]
-                        print(f"Replaced string value for entryPoints in {krouter}")
-                        break
+                if is_http:
+                    orouter['entryPoints'] = ['http']
+                elif is_https or is_certificate:
+                    orouter['entryPoints'] = ['https']
                 else:
-                    del orouter['entryPoints']
-                    print(f"Removed entryPoints in {krouter}")
+                    orouter['entryPoints'] = orouter['entryPoints'].split(",")
+                print(f"Replaced string value for entryPoints in {krouter}", orouter['entryPoints'])
             if not 'ruleSyntax' in orouter and not (is_http or is_https or is_certificate or is_api):
                 orouter['ruleSyntax'] = 'v2' # retain custom router rule syntax v2-compatible
             if 'tls' in orouter and is_https:
