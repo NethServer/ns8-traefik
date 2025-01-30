@@ -1,23 +1,8 @@
 #!/usr/bin/env python3
 
 #
-# Copyright (C) 2023 Nethesis S.r.l.
+# Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-
-import json
-import sys
-
-from custom_certificate_manager import info_custom_certificate
-from get_certificate import get_certificate
-
-# Try to parse the stdin as JSON.
-# If parsing fails, output everything to stderr
-
-data = json.load(sys.stdin)
-try:
-    cert_info = info_custom_certificate(data['fqdn'])
-except FileNotFoundError:
-    cert_info = get_certificate(data)
 
 json.dump(cert_info, fp=sys.stdout)
