@@ -111,5 +111,8 @@ EOF
 # Create uploaded certificates folder
 mkdir -p custom_certificates
 
+# Create acme storage folder
+mkdir -p acme
+
 # Enable and start the services
 systemctl --user enable --now traefik.service

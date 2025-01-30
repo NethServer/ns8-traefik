@@ -27,6 +27,8 @@ def upgrade_to_v3(static_cfg):
     elif static_cfg['core'].get('defaultRuleSyntax') == 'v3':
         return # Nothing to do
     print("Upgrading configuration for Traefik v3")
+    agent.run_helper("mkdir", "-vp", "acme")
+    agent.run_helper("podman", "cp", "-vf", "traefik:/etc/traefik/acme/acme.json", "acme/acme.json")
     agent.run_helper("cp", "-vfT", "traefik.yaml", "traefik.yaml.v2")
     agent.run_helper("cp", "-rvfT", "configs", "configs.v2")
     agent.run_helper("cp", "-rvfT", "custom_certificates", "custom_certificates.v2")
