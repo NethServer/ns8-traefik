@@ -9,6 +9,7 @@ import json
 import sys
 import os
 import cert_helpers
+import agent
 
 def main():
     request = json.load(sys.stdin)

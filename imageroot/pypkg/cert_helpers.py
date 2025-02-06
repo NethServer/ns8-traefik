@@ -47,12 +47,14 @@ def remove_custom_cert(name):
             os.unlink(path)
         except FileNotFoundError:
             pass
+    rdb = agent.redis_connect(privileged=True)
+    rdb.delete(f'module/{os.environ["MODULE_ID"]}/certificate/{name}')
 
 def has_acmejson_name(name):
     """Return True if name is found among acme.json Certificates."""
     with open('acme/acme.json', 'r') as fp:
         acmejson = json.load(fp)
-    for ocert in acmejson['acmeServer']["Certificates"]:
+    for ocert in acmejson['acmeServer']["Certificates"] or []:
         if ocert["domain"]["main"] == name or name in ocert["domain"].get("sans", []):
             return True
     return False
@@ -62,7 +64,7 @@ def has_acmejson_cert(main, sans=[]):
     acme.json Certificates."""
     with open('acme/acme.json', 'r') as fp:
         acmejson = json.load(fp)
-    for ocert in acmejson['acmeServer']["Certificates"]:
+    for ocert in acmejson['acmeServer']["Certificates"] or []:
         if ocert["domain"]["main"] == main and set(ocert["domain"].get("sans", [])) == set(sans):
             return True
     return False
