@@ -1,23 +1,33 @@
 #!/usr/bin/env python3
 
 #
-# Copyright (C) 2023 Nethesis S.r.l.
+# Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
 import json
 import sys
+import os
+import cert_helpers
 
-from custom_certificate_manager import info_custom_certificate
-from get_certificate import get_certificate
+def main():
+    request = json.load(sys.stdin)
+    fqdn = request['fqdn']
+    if fqdn in cert_helpers.read_custom_cert_names():
+        response = {
+            "fqdn": fqdn,
+            "type": "custom",
+            "obtained": True,
+        }
+    elif fqdn in cert_helpers.read_default_cert_names():
+        response = {
+            "fqdn": fqdn,
+            "type": "internal",
+            "obtained": cert_helpers.has_acmejson_name(fqdn),
+        }
+    else:
+        response = {}
+    json.dump(response, fp=sys.stdout)
 
-# Try to parse the stdin as JSON.
-# If parsing fails, output everything to stderr
-
-data = json.load(sys.stdin)
-try:
-    cert_info = info_custom_certificate(data['fqdn'])
-except FileNotFoundError:
-    cert_info = get_certificate(data)
-
-json.dump(cert_info, fp=sys.stdout)
+if __name__ == "__main__":
+    main()

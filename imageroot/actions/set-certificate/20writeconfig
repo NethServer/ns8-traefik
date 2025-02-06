@@ -1,41 +1,25 @@
 #!/usr/bin/env python3
 
 #
-# Copyright (C) 2023 Nethesis S.r.l.
+# Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
-#
-
-#
-# Request a let's encrypt certificate
-# Input example:
-#  {"fqdn": "example.com"}
 #
 
 import json
 import sys
 import os
-import uuid
-import yaml
+import cert_helpers
 
-# Try to parse the stdin as JSON.
-# If parsing fails, output everything to stderr
-data = json.load(sys.stdin)
+def main():
+    request = json.load(sys.stdin)
+    cert_helpers.add_default_certificate_name(request['fqdn'])
+    if request.get('sync'):
+        obtained = cert_helpers.wait_acmejson_sync(timeout=request.get('sync_timeout', 120))
+    else:
+        obtained = False
+    json.dump({"obtained": obtained}, fp=sys.stdout)
+    if request.get('sync') is not None and obtained is False:
+        exit(2)
 
-agent_id = os.getenv("AGENT_ID", "")
-if not agent_id:
-    raise Exception("AGENT_ID not found inside the environemnt")
-
-# Setup HTTPS router
-path = uuid.uuid4()
-router = {
-        'entryPoints': ["https"],
-        'service': "ping@internal",
-        'rule' :  f'Host(`{data["fqdn"]}`) && Path(`/{path}`)',
-        'priority': '1',
-        'tls': { 'domains': [{'main': data["fqdn"]}], 'certresolver': "acmeServer"}
-        }
-
-# Write configuration file
-config = {"http": {"routers": {f'certificate-{data["fqdn"]}': router}}}
-with open(f'configs/certificate-{data["fqdn"]}.yml', 'w') as fp:
-    fp.write(yaml.safe_dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True))
+if __name__ == "__main__":
+    main()

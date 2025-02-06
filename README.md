@@ -233,12 +233,12 @@ The action takes 3 parameters:
 
 Example:
 ```
-api-cli run set-certificate --agent module/traefik1 --data "{\"fqdn\": \"$(hostname -f)\""
+api-cli run module/traefik1/set-certificate --data '{"fqdn":"myhost.example.com","sync":false}'
 ```
 
 Output:
 ```json
-{"fqdn": "example.com", "obtained": true}
+{"obtained": false}
 ```
 
 ## get-certificate
@@ -250,12 +250,12 @@ The action takes 1 parameter:
 
 Example:
 ```
-api-cli run get-certificate --agent module/traefik1 --data "{\"fqdn\": \"$(hostname -f)\""
+api-cli run module/traefik1/get-certificate --data '{"fqdn":"myhost.example.com"}'
 ```
 
 Output:
 ```
-{"fqdn": "example.com", "obtained": true}
+{"fqdn": "myhost.example.com", "obtained": true, "type": "internal"}
 ```
 
 ## delete-certificate
@@ -282,22 +282,22 @@ The action takes 1 optional parameter:
 
 Example:
 ```
-api-cli run list-certificates --agent module/traefik1
+api-cli run module/traefik1/list-certificates
 ```
 
-Output:
+Output (brief format):
 ```json
-["example.com"]
+["myhost.example.com"]
 ```
 
 Example list expanded:
 ```
-api-cli run list-certificates --agent module/traefik1 --data '{"expand_list": true}'
+api-cli run module/traefik1/list-certificates --data '{"expand_list": true}'
 ```
 
-Output:
+Output (expanded format):
 ```json
-[{"fqdn": "example.com", "obtained": false}]
+[{"fqdn": "myhost.example.com", "obtained": true, "type": "internal"}]
 ```
 
 ## set-acme-server
