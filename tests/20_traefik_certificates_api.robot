@@ -63,7 +63,13 @@ Generate a custom private and public key
     Set Suite Variable    ${key}   ${encoded_key}
     Set Suite Variable    ${csr}   ${encoded_csr}
 
+Upload rejected for a self-signed certificate
+    ${response} =  Run task    module/traefik1/upload-certificate
+    ...    {"keyFile": "${key}", "certFile": "${csr}"}    rc_expected=33
+
 Upload a custom certificate
+    # Disable strict certificate verification:
+    Execute Command    runagent -m traefik1 bash -c 'echo UPLOAD_CERTIFICATE_VERIFY_TYPE\=selfsign >> environment'
     ${response} =  Run task    module/traefik1/upload-certificate
     ...    {"keyFile": "${key}", "certFile": "${csr}"}
     ${response} =  Run task    module/traefik1/get-certificate    {"fqdn": "test.example.com"}
