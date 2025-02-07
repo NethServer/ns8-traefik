@@ -67,3 +67,15 @@ if [ "$cert_public_key" != "$key_public_key" ]; then
     del_certs
     exit 3
 fi
+
+# Set default certificate verification type:
+: "${UPLOAD_CERTIFICATE_VERIFY_TYPE:=chain}"
+if [ "${UPLOAD_CERTIFICATE_VERIFY_TYPE}" = chain ] && ! openssl verify -untrusted $CERT_FILE $CERT_FILE 1>&2 ; then
+    echo "set-status validation-failed" >&"${AGENT_COMFD:-2}"
+    printf '{"field":"certFile","parameter":"certFile","value":"","error":"cert_verification_failed_chain"}\n'
+    exit 33 # certificate chain verification failed
+elif [ "${UPLOAD_CERTIFICATE_VERIFY_TYPE}" = selfsign ] && ! openssl verify -CAfile $CERT_FILE -untrusted $CERT_FILE $CERT_FILE 1>&2 ; then
+    echo "set-status validation-failed" >&"${AGENT_COMFD:-2}"
+    printf '{"field":"certFile","parameter":"certFile","value":"","error":"cert_verification_failed_selfsigned"}\n'
+    exit 34 # self-signed certificate verification failed
+fi

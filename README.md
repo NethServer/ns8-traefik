@@ -341,3 +341,17 @@ Example:
 ```
 api-cli run module/traefik1/upload-certificate --data '{"certFile":"LS0tLS1CRUdJTiBSU0EgU...","keyFile":"LS0tLS1CRUdJTiBSU0EgU..."}'
 ```
+
+The action verifies whether the certificate is valid. The type of
+verification is controlled by the following environment settings:
+
+- `UPLOAD_CERTIFICATE_VERIFY_TYPE=chain` (default) – The certificate must
+  be valid according to the host CA certificate store. The uploaded file
+  may include an intermediate CA certificate appended to the certificate
+  itself.
+
+- `UPLOAD_CERTIFICATE_VERIFY_TYPE=selfsign` – The certificate can be
+  self-signed or include a full chain of certificates.
+
+- `UPLOAD_CERTIFICATE_VERIFY_TYPE=none` – Certificate verification is
+  skipped. Use this value to disable expiration date checks.
