@@ -71,6 +71,22 @@ if data.get("host") is not None:
     if data["lets_encrypt"]:
         router_https["tls"]["certresolver"] = "acmeServer"
 
+# IP addresses allowed to use the router
+if data.get('ip_allowlist', []) != []:
+    middlewares[f'{data["instance"]}-ipallowlist'] = {
+        "ipAllowList": {
+            "sourceRange": data['ip_allowlist'],
+            # If X-Forwarded-For header is present skip PROXIES_DEPTH
+            # items to extrapolate the Client IP. See set-trusted-proxies
+            # action.
+            "ipStrategy": {
+                "depth": '{{ env "PROXIES_DEPTH" | default "0"}}',
+            }
+        },
+    }
+    router_http["middlewares"].append(f'{data["instance"]}-ipallowlist')
+    router_https["middlewares"].append(f'{data["instance"]}-ipallowlist')
+
 # Strip the path from the request
 if data.get("strip_prefix"):
     middlewares[f'{data["instance"]}-stripprefix'] = { "stripPrefix": { "prefixes": path } }
