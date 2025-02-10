@@ -136,6 +136,13 @@
             "title": "User created route flag",
             "description": "If true, the route is flagged as manually created by a user"
         },
+        "ip_allowlist": {
+            "type":"array",
+            "description": "List of allowed client ip addresses, in CIDR format",
+            "items": {
+                "type":"string"
+            }
+        },
         "headers": {
             "type": "object",
             "title": "Headers list",
