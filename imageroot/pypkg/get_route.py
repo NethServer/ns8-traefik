@@ -63,8 +63,8 @@ def get_route(data, ignore_error = False):
         # Check if the certificate is retrieved automatically
         route['lets_encrypt'] = True if traefik_https_route['tls'].get("certResolver") else False
 
-        # Strip @file suffix  from middlware names
-        for mid in traefik_http_route.get("middlewares",[]):
+        # Strip @file suffix from middleware names
+        for mid in traefik_http_route.get("middlewares",[]) + traefik_https_route.get("middlewares",[]):
             middlewares.append(mid[0:mid.index('@')])
 
         # Check if redirect http to https is enabled

@@ -55,11 +55,12 @@ else:
     route = { "rule": f'Path(`{path}`) || PathPrefix(`{path_prefix}`)', "priority": "1"}
 
 # Setup routers
-route["entryPoints"] = "http,https"
 route["service"] = data["instance"]
 route["middlewares"] = []
 router_http = copy.deepcopy(route)
+router_http['entryPoints'] = ["http"]
 router_https = copy.deepcopy(route)
+router_https['entryPoints'] = ["https"]
 router_https["tls"] = {}
 #router_https = route_s
 if data.get("host") is not None:
@@ -69,10 +70,6 @@ if data.get("host") is not None:
 if data.get("host") is not None:
     if data["lets_encrypt"]:
         router_https["tls"]["certresolver"] = "acmeServer"
-
-# Enable or disable HTTP 2 HTTPS redirection
-if data["http2https"]:
-    router_http["middlewares"] = ["http2https-redirectscheme"]
 
 # Strip the path from the request
 if data.get("strip_prefix"):
@@ -105,6 +102,10 @@ if "headers" in data and data["headers"]:
 
     router_http["middlewares"].append(f'{data["instance"]}-headers')
     router_https["middlewares"].append(f'{data["instance"]}-headers')
+
+# Enable or disable HTTP 2 HTTPS redirection
+if data["http2https"]:
+    router_http["middlewares"] = ["http2https-redirectscheme"]
 
 # Cleanup middleware pointers
 if not router_http["middlewares"]:

@@ -6,7 +6,7 @@
     "examples": [
         {
             "fqdn": "example.com",
-            "obtained": "true",
+            "obtained": true,
             "type": "internal"
         }
     ],

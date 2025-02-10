@@ -25,7 +25,6 @@ http:
   middlewares:
     ApiServer-stripprefix:
       stripPrefix:
-        forceSlash: 'false'
         prefixes:
         - /cluster-admin
     ApiServerMw2:
@@ -90,7 +89,7 @@ cat <<EOF > configs/_api.yml
 http:
   middlewares:
     ApisEndpointMw0:
-      ipWhiteList:
+      IPAllowList:
         sourceRange:
         - 127.0.0.1
     ApisEndpointMw1:
@@ -111,6 +110,9 @@ EOF
 
 # Create uploaded certificates folder
 mkdir -p custom_certificates
+
+# Create acme storage folder
+mkdir -p acme
 
 # Enable and start the services
 systemctl --user enable --now traefik.service

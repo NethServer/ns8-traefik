@@ -3,5 +3,5 @@ Description=Export acme.json changes
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/runagent export-certificate %h/.local/share/containers/storage/volumes/traefik-acme/_data/acme.json
+ExecStart=/usr/local/bin/runagent export-certificate %S/state/acme/acme.json
 SyslogIdentifier=%u

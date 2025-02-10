@@ -50,4 +50,7 @@ ping:
   manualRouting: true
 
 api: {}
+
+core:
+  defaultRuleSyntax: v3
 EOF
