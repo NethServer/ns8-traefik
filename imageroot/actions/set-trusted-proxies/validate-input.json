@@ -5,6 +5,7 @@
     "description": "Set the IP addresses that are trusted as front-end proxies",
     "examples": [
         {
+            "depth": 1,
             "proxies": [
                 "192.168.1.1",
                 "192.168.1.2"
@@ -17,6 +18,10 @@
     ],
     "additionalProperties": false,
     "properties": {
+        "depth": {
+            "type":"integer",
+            "minimum": 0
+        },
         "proxies": {
             "type": "array",
             "items": {
