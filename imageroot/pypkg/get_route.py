@@ -107,6 +107,19 @@ def get_route(data, ignore_error = False):
                 # The TLS skip certificate verification flag may be missing completely: ignore.
                 pass
 
+        if middlewares and f'{module}-ipallowlist' in middlewares:
+            try:
+                with urllib.request.urlopen(f'http://127.0.0.1/{api_path}/api/http/middlewares/{module}-ipallowlist@file') as res:
+                    ipallowlist_middleware = json.load(res)
+            except urllib.error.HTTPError as e:
+                raise Exception(f'Error reaching traefik daemon (middlewares): {e.reason}')
+
+            try:
+                route['ip_allowlist'] = ipallowlist_middleware['ipAllowList']['sourceRange']
+            except KeyError:
+                # ipAllowList not defined, skip
+                pass
+
     except urllib.error.HTTPError as e:
         if e.code == 404:
             # If the route is not found, return an empty JSON object
