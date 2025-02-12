@@ -2,6 +2,71 @@
 
 This module implements a proxy for web applications using [Traefik](https://doc.traefik.io/traefik/).
 
+## Configuration
+
+Traefik's static configuration is read from `traefik.yaml` at every
+container restart.
+
+Traefik's dynamic configuration uses the Traefik File provider, which
+monitors `.yml` files in the `state/configs` directory. Traefik watches
+for file changes and applies updates automatically.
+
+The `traefik.service` Systemd unit runs `apply-templates` before starting
+the service container. This helper overwrites both static and dynamic `.yml`
+files, merging the contents of the module templates with the current file
+contents.
+
+### Custom templates
+
+It is possible to override the module-provided templates with custom ones.
+
+1. Create the custom templates directory under the `state/` directory:
+
+       mkdir -vp templates
+
+2. Place a `.yml` file in the custom `templates/` directory, maintaining
+   the original path structure. Examples:
+
+   - For `traefik.yaml`, use `templates/traefik.yaml`
+   - For `configs/_api_server.yml`, use `templates/configs/_api_server.yml`
+
+The file contents must follow the Traefik configuration structure.
+Refer to the Traefik documentation for details.
+
+When the Traefik container restarts, custom templates replace the module
+templates as the base configuration. The current configuration is then
+recursively merged with it, file by file, according to the following rules:
+
+- The current configuration has higher precedence: its values override
+  those in the base configuration.
+- If both configurations contain arrays, they are concatenated, and
+  duplicate values are removed.
+
+Ensure that custom templates remain compatible with module templates to
+avoid misconfigurations. To list the module templates, run:
+
+    find $AGENT_INSTALL_DIR/templates -ls
+
+Review your custom templates with:
+
+    find $AGENT_STATE_DIR/templates -ls
+
+When the instance is updated, module templates are overwritten, but custom
+templates remain unchanged.
+
+To revert a change introduced by a custom template:
+
+1. Edit the custom template, or remove its file completely.
+
+2. Run `apply-templates` and review the resulting configuration file. If
+   needed, manually edit the configuration file to forget the settings
+   introduced by the custom template.
+
+3. If the Traefik static configuration was changed, restart the
+   `traefik.service` unit.
+
+## API
+
 The following table summarizes the available actions and the role(s)
 required to invoke them. For simplicity, the builtin `owner` and `reader`
 roles are omitted.
@@ -20,7 +85,7 @@ roles are omitted.
 | `get-acme-server` | |
 | `upload-certificate` | |
 
-## set-route
+### set-route
 
 This action creates HTTP routes based on a combination of host and path, is possible to define three type
 of rules:
@@ -35,7 +100,7 @@ This is the priority of the rules type evaluation (top-down):
 1. only `host`
 1. only `path`
 
-### Parameters
+#### Parameters
 
 - `instance`: the instance name, which is unique inside the cluster, mandatory
 - `skip_cert_verify`: do not verify self signed certificate (boolean)
@@ -67,7 +132,7 @@ This is the priority of the rules type evaluation (top-down):
       }
 ```
 
-### Examples
+#### Examples
 
 Only `host`
 ```
@@ -129,7 +194,7 @@ api-cli run set-route --agent module/traefik1 --data - <<EOF
 }
 EOF
 ```
-## get-route
+### get-route
 
 This action get an existing route. It returns a JSON object that describes the route configuration, if the
 route is not found an empty JSON object is returned.
@@ -146,7 +211,7 @@ Output:
 {"instance": "module3", "host": "module.example.org", "path": "/foo", "url": "http://127.0.0.1:2000", "lets_encrypt": true, "http2https": true, "strip_prefix": false}
 ```
 
-## delete-route
+### delete-route
 
 This action delets an existing route. It can be used when removing a module instance.
 The action takes 1 parameter:
@@ -157,7 +222,7 @@ Example:
 api-cli run delete-route --agent module/traefik1 --data '{"instance": "module1"}'
 ```
 
-## list-routes
+### list-routes
 
 This action returns a list of configured routes, the list is an JSON array, and if no route is configured, an
 empty array is returned.
@@ -216,7 +281,7 @@ Output:
 ```
 
 
-## set-certificate
+### set-certificate
 
 Run this action to request a Let's Encrypt certificate if [HTTP-01
 challenge](https://letsencrypt.org/docs/challenge-types/#http-01-challenge)
@@ -241,7 +306,7 @@ Output:
 {"obtained": false}
 ```
 
-## get-certificate
+### get-certificate
 
 Run this action to get the status of requested a Let's Encrypt certificate
 
@@ -258,7 +323,7 @@ Output:
 {"fqdn": "myhost.example.com", "obtained": true, "type": "internal"}
 ```
 
-## delete-certificate
+### delete-certificate
 
 This action deletes an existing route used for explicit request a certificate.
 
@@ -272,7 +337,7 @@ Example:
 api-cli run delete-certificate --agent module/traefik1 --data "{\"fqdn\": \"$(hostname -f)\""
 ```
 
-## list-certificates
+### list-certificates
 
 This action returns a list of requested certificate, the list is an JSON array, and if no certificate was requested, an
 empty array is returned.
@@ -300,7 +365,7 @@ Output (expanded format):
 [{"fqdn": "myhost.example.com", "obtained": true, "type": "internal"}]
 ```
 
-## set-acme-server
+### set-acme-server
 
 This action allows setting an ACME server that traefik will use to request the HTTPS certificates.
 The default ACME server used is Let's Encrypt.
@@ -313,7 +378,7 @@ Example:
 api-cli run set-acme-server  --agent module/traefik1 --data '{"url":"https://acme-staging-v02.api.letsencrypt.org/directory"}
 ```
 
-## get-acme-server
+### get-acme-server
 
 This action returns the current configured ACME server.
 
@@ -329,7 +394,7 @@ Output:
 {"url": "https://acme-staging-v02.api.letsencrypt.org/directory"}
 ```
 
-## upload-certificate
+### upload-certificate
 
 Action allowing the upload of custom certificates to Traefik.
 
@@ -355,3 +420,42 @@ verification is controlled by the following environment settings:
 
 - `UPLOAD_CERTIFICATE_VERIFY_TYPE=none` – Certificate verification is
   skipped. Use this value to disable expiration date checks.
+
+### set-trusted-proxies
+
+This action configures Traefik to trust X-Forwarded-* headers from the
+given list of IP addresses.
+
+IPs must be in IPv4 or IPv6 format.
+
+Example:
+```
+api-cli run module/traefik1/set-trusted-proxies --data '{"proxies":["192.168.1.1","192.168.1.2"]}'
+```
+
+Optionally, specify how many tiers of HTTP proxies are in front of
+traefik. If `depth` is not specified, assume just 1 tier is present. This
+argument is important to extract the correct client IP from the
+`X-Forwarded-For` header sent by the front end proxy.
+
+Example:
+```
+api-cli run module/traefik1/set-trusted-proxies --data '{"proxies":["192.168.1.1"], "depth": 2}'
+```
+
+
+### get-trusted-proxies
+
+Return the list of IP addresses that are trusted as front-end HTTP
+proxies.
+
+
+Example:
+```
+api-cli run module/traefik1/get-trusted-proxies
+```
+
+Output:
+```json
+{"proxies": ["192.168.1.2", "192.168.1.1"], "depth": 1}
+```

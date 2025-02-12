@@ -1,56 +1,9 @@
 #!/bin/bash
 
 #
-# Copyright (C) 2023 Nethesis S.r.l.
+# Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-set -e
-
-# Redirect any output to the journal (stderr)
-exec 1>&2
-
-cat >traefik.yaml <<EOF 
-defaultEntryPoints:
-  - http
-  - https
-
-file: {}
-
-log:
-  level: $LOG_LEVEL
-
-accessLog: {}
-
-entryPoints:
-  http:
-   address: ":80"
-  https:
-   address: ":443"
-
-providers:
-  file:
-    directory: "/etc/traefik/configs"
-
-tls:
-  certResolver: acmeServer
-  options: {}
-
-certificatesResolvers:
-  acmeServer:
-    acme:
-      email: ${LE_EMAIL}
-      caServer: ${ACME_SERVER_URL}
-      storage: /etc/traefik/acme/acme.json
-      httpChallenge:
-        entryPoint: http
-      tlsChallenge: false
-
-ping:
-  manualRouting: true
-
-api: {}
-
-core:
-  defaultRuleSyntax: v3
-EOF
+# Placeholder, see bug NethServer/dev#7058
+exit 0

@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2025 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import sys
+import os
+import conf_helpers
+import subprocess
+
+config_files = [
+    # YAML file                     # Processing strategy
+    ("traefik.yaml",                "default"),
+    ("configs/_api.yml",            "default"),
+    ("configs/_api_server.yml",     "default"),
+    ("configs/_http2https.yml",     "default"),
+    ("configs/_default_cert.yml",   "preserve-current"),
+]
+
+def main():
+    global config_files
+    subprocess.run(["cp", "-vfT", "traefik.yaml", ".traefik.yaml.prev"])
+    subprocess.run(["cp", "-rvfT", "configs", ".configs.prev"])
+    for cfile, strategy in config_files:
+        try:
+            # Load custom template:
+            cfbas = conf_helpers.parse_yaml_config("templates/" + cfile)
+            print("Applying custom override for", cfile, file=sys.stderr)
+        except FileNotFoundError:
+            # Load module template:
+            cfbas = conf_helpers.parse_yaml_config(os.environ["AGENT_INSTALL_DIR"] + "/templates/" + cfile)
+        cfbas = conf_helpers.replace_env_placeholders(cfbas)
+        try:
+            cfcur = conf_helpers.parse_yaml_config(cfile)
+            cfcur = conf_helpers.replace_env_placeholders(cfcur)
+            if strategy == "preserve-current":
+                cfbas = {} # Completely override the base configuration, preserving current settings
+        except Exception as ex:
+            cfcur = {}
+            print("Initializing", cfile, "Reason:", ex, file=sys.stderr)
+        cfnew = conf_helpers.merge_yaml_structs(cfbas, cfcur)
+        conf_helpers.write_yaml_config(cfnew, cfile)
+
+if __name__ == "__main__":
+    main()

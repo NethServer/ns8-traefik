@@ -1,0 +1,34 @@
+http:
+  middlewares:
+    ApiServer-stripprefix:
+      stripPrefix:
+        prefixes:
+        - /cluster-admin
+    ApiServerMw2:
+      redirectRegex:
+        regex: ^.*/cluster-admin$
+        replacement: /cluster-admin/
+  routers:
+    ApiServer-http:
+      entrypoints:
+      - http
+      middlewares:
+      - http2https-redirectscheme
+      rule: Path(`/cluster-admin`) || PathPrefix(`/cluster-admin/`)
+      service: ApiServer
+      priority: '100000'
+    ApiServer-https:
+      entrypoints:
+      - https
+      middlewares:
+      - ApiServerMw2
+      - ApiServer-stripprefix
+      priority: '100000'
+      rule: Path(`/cluster-admin`) || PathPrefix(`/cluster-admin/`)
+      service: ApiServer
+      tls: {}
+  services:
+    ApiServer:
+      loadBalancer:
+        servers:
+        - url: http://127.0.0.1:9311

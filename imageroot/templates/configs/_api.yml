@@ -1,0 +1,20 @@
+http:
+  middlewares:
+    ApisEndpointMw0:
+      IPAllowList:
+        sourceRange:
+        - 127.0.0.1
+    ApisEndpointMw1:
+      stripPrefix:
+        prefixes:
+        - /${API_PATH}
+  routers:
+    ApisEndpointHttp:
+      entrypoints:
+      - http
+      middlewares:
+      - ApisEndpointMw1
+      - ApisEndpointMw0
+      priority: '100000'
+      rule: PathPrefix(`/${API_PATH}/api`)
+      service: api@internal

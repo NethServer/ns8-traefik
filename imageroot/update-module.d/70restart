@@ -5,5 +5,4 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Placeholder, see bug NethServer/dev#7058
-exit 0
+systemctl --user restart traefik.service

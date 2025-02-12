@@ -7,6 +7,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
 Restart=always
 ExecStartPre=/bin/rm -f %t/traefik.pid %t/traefik.ctr-id
+ExecStartPre=runagent apply-templates
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/traefik.pid \
@@ -14,6 +15,7 @@ ExecStart=/usr/bin/podman run \
     --cgroups=no-conmon \
     --network=host \
     --replace --name=%N \
+    --env=PROXIES_DEPTH \
     --volume=./acme:/etc/traefik/acme:z \
     --volume=./traefik.yaml:/etc/traefik/traefik.yaml:z \
     --volume=./selfsigned.crt:/etc/traefik/selfsigned.crt:z \

@@ -1,0 +1,33 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import json
+import sys
+import os
+import conf_helpers
+
+def main():
+    curconf = conf_helpers.parse_yaml_config("traefik.yaml")
+    curconf = conf_helpers.merge_yaml_structs(curconf, {
+        "entryPoints": {
+            "http": {"forwardedHeaders": {"trustedIPs": []}},
+            "https": {"forwardedHeaders": {"trustedIPs": []}},
+        },
+    })
+    proxies = list(set(
+        curconf['entryPoints']['http']['forwardedHeaders']["trustedIPs"] +
+        curconf['entryPoints']['https']['forwardedHeaders']["trustedIPs"]
+    ))
+    response = {
+        "proxies": proxies,
+        "depth": int(os.getenv("PROXIES_DEPTH", 0))
+    }
+    json.dump(response, fp=sys.stdout)
+
+if __name__ == "__main__":
+    main()

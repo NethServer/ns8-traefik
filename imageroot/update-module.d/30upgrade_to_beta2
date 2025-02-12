@@ -5,8 +5,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+if [ -d configs ] ; then
+    # It is not a B2 installation, nothing to do.
+    exit 0
+fi
+
+# Stop the service, will be started by 50create.
+systemctl --user stop traefik.service
+
 # Create static configuration, ignore warnings
-~/.config/actions/create-module/10expandconfig 2>/dev/null
 ~/.config/actions/create-module/50create 2>/dev/null
 # Convert existing configuration to yaml
 ~/.config/bin/redis2yml ${MODULE_ID}
