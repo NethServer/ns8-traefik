@@ -14,6 +14,7 @@ ExecStart=/usr/bin/podman run \
     --cgroups=no-conmon \
     --network=host \
     --replace --name=%N \
+    --env=PROXIES_DEPTH \
     --volume=./acme:/etc/traefik/acme:z \
     --volume=./traefik.yaml:/etc/traefik/traefik.yaml:z \
     --volume=./selfsigned.crt:/etc/traefik/selfsigned.crt:z \
