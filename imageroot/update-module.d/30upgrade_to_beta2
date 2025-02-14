@@ -1,12 +1,9 @@
 #!/bin/bash
 
 #
-# Copyright (C) 2023 Nethesis S.r.l.
+# Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-# Create static configuration, ignore warnings
-~/.config/actions/create-module/10expandconfig 2>/dev/null
-~/.config/actions/create-module/50create 2>/dev/null
-# Convert existing configuration to yaml
-~/.config/bin/redis2yml ${MODULE_ID}
+# Placeholder, see bug NethServer/dev#7058
+exit 0
