@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2023 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import agent
+import json
+import sys
+import conf_helpers
+
+def main():
+    curconf = conf_helpers.parse_yaml_config("traefik.yaml")
+    try:
+        proxies = list(set(
+            curconf['entryPoints']['http']['forwardedHeaders']["trustedIPs"] +
+            curconf['entryPoints']['https']['forwardedHeaders']["trustedIPs"]
+        ))
+    except KeyError:
+        proxies = []
+    response = {
+        "proxies": proxies,
+    }
+    json.dump(response, fp=sys.stdout)
+
+if __name__ == "__main__":
+    main()
