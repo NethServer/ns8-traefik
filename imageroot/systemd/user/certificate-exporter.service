@@ -1,7 +1,7 @@
 [Unit]
-Description=Export acme.json changes
+Description=Notify acme.json changes
 
 [Service]
-Type=simple
-ExecStart=/usr/local/bin/runagent export-certificate %S/state/acme/acme.json
-SyslogIdentifier=%u
+Type=oneshot
+ExecStart=-/usr/local/bin/runagent acmejson-notify acme/acme.json
+ExecStart=-/usr/local/bin/runagent export-certificate acme/acme.json
