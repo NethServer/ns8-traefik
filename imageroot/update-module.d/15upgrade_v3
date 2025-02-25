@@ -10,6 +10,7 @@ import sys
 import agent
 import yaml
 import glob
+import cert_helpers
 
 yaml_options = {
     "default_flow_style": False,
@@ -33,19 +34,20 @@ def upgrade_to_v3(static_cfg):
     agent.run_helper("cp", "-rvfT", "configs", "configs.v2")
     agent.run_helper("cp", "-rvfT", "custom_certificates", "custom_certificates.v2")
     # Merge special routers for certificates into one default certificate:
-    defcert = {}
+    defcertnames = list()
     certificate_config_files = list(glob.glob("./configs/certificate-*.yml"))
     for config_file in certificate_config_files:
         try:
             with open(config_file) as ofile:
                 certdyn = yaml.safe_load(ofile) or {}
-                upgrade_as_default_certificate(certdyn, defcert)
+                upgrade_as_default_certificate(certdyn, defcertnames)
         except Exception as ex:
             print("ERROR", config_file, ex, file=sys.stderr)
         os.unlink(config_file)
         print("Remove certificate config file:", config_file, file=sys.stderr)
-    if defcert:
-        write_dynamic_config("./configs/_default_cert.yml", defcert)
+    if defcertnames:
+        print("Recording names for defaultGeneratedCert:", defcertnames, file=sys.stderr)
+        cert_helpers.add_default_certificate_name(defcertnames[0], sans=defcertnames[1:])
     # Required configuration upgrade from v2 to v3 format:
     static_cfg['core']['defaultRuleSyntax'] = 'v3'
     static_cfg['log'] = {'noColor': True, 'level': 'INFO'}
@@ -60,37 +62,22 @@ def upgrade_to_v3(static_cfg):
             print("ERROR", config_file, ex, file=sys.stderr)
     write_static_cfg(static_cfg)
 
-def upgrade_as_default_certificate(certdyn, defcert):
+def upgrade_as_default_certificate(certdyn : dict, defcertnames : list):
     """Transform the router TLS configuration into configuration for
     defaultGeneratedCert."""
     try:
         _, router = certdyn['http']['routers'].popitem()
         odomain = router['tls']['domains'].pop()
+        certnames = {odomain['main']} | set(odomain.get('sans', []))
         del certdyn['http']
     except (KeyError, IndexError) as ex:
         print("Certificate router parse error", ex, file=sys.stderr)
         return # skip upgrade: the router is not as we expect
-    defcert.setdefault('tls', {
-        'stores': {
-            'default': {
-                'defaultGeneratedCert': {
-                    'resolver': 'acmeServer',
-                    'domain': {
-                        'main': odomain['main'],
-                        'sans': [],
-                    },
-                },
-            },
-        },
-    })
-    # Merge the domain main and sans keys into defaultGeneratedCert SANs set:
-    defdom = defcert['tls']['stores']['default']['defaultGeneratedCert']['domain']
-    sans = set(defdom.get('sans', []))
-    sans.add(odomain['main'])
-    sans.update(set(odomain.get('sans', [])))
-    sans.discard(defdom['main'])
-    defdom['sans'] = list(sans)
-    print("Recording names for defaultGeneratedCert:", defdom['main'], sans, file=sys.stderr)
+    for name in certnames:
+        if name not in defcertnames and cert_helpers.has_acmejson_name(name):
+            # If a certificate was already obtained for name, consider it
+            # valid and add to the new certificate
+            defcertnames.append(name)
 
 def upgrade_http_to_v3(ohttp):
     """Upgrade an http dynamic configuration to Traefik v3 format."""
