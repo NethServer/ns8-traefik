@@ -12,6 +12,7 @@ import time
 import glob
 import subprocess
 import datetime
+import select
 
 def read_default_cert_names():
     """Return the list of host names configured in the
@@ -59,7 +60,7 @@ def has_acmejson_name(name):
         for ocert in acmejson['acmeServer']["Certificates"] or []:
             if ocert["domain"]["main"] == name or name in ocert["domain"].get("sans", []):
                 return True
-    except (FileNotFoundError, KeyError):
+    except (FileNotFoundError, KeyError, json.JSONDecodeError):
         pass
     return False
 
@@ -73,27 +74,48 @@ def has_acmejson_cert(main, sans=[]):
             if ocert["domain"]["main"] == main and set(ocert["domain"].get("sans", [])) == set(sans):
                 return True
         return False
-    except (FileNotFoundError, KeyError):
+    except (FileNotFoundError, KeyError, json.JSONDecodeError):
         pass
     return False
 
 def wait_acmejson_sync(timeout=120, interval=2.1, names=[]):
     """Poll the acme.json file every 'interval' seconds, until a
-    certificate matching 'names' appears, or timeout seconds are elapsed.
-    If list 'names' is given, it is expected to have subject at index 0
-    and sans in the rest of the list. If not, this function waits for the
-    default certificate."""
+    certificate matching 'names' appears, an error occurs, or timeout
+    seconds are elapsed. If list 'names' is given, it is expected to have
+    subject at index 0 and sans in the rest of the list. If not, this
+    function waits for the default certificate."""
     if not names:
         # Wait for the default certificate.
         names = read_default_cert_names()
     if not names:
         return True # Consider as obtained, if no names are set.
     elapsed = 0.0
-    while elapsed < timeout:
-        time.sleep(interval)
-        elapsed += interval
-        if has_acmejson_cert(names[0], names[1:]):
-            return True
+    tstart = datetime.datetime.now(datetime.UTC)
+    logcli_cmd = [
+        "logcli",
+        "query",
+        "--tail",
+        "--limit=1",
+        "--from=" + tstart.isoformat(),
+        "--timezone=Local", # use system timezone for output
+        "--quiet",
+        "--no-labels",
+        '{module_id=~"traefik.+"} | json | line_format "{{.MESSAGE}}"' + \
+        '| logfmt | providerName="acmeServer.acme" and error!=""' + \
+        '| line_format "{{.error}}"',
+    ]
+    with subprocess.Popen(logcli_cmd, stdout=subprocess.PIPE, text=True) as logcli_proc:
+        fdmon = logcli_proc.stdout.fileno()
+        while elapsed < timeout:
+            time.sleep(interval)
+            elapsed += interval
+            if has_acmejson_cert(names[0], names[1:]):
+                logcli_proc.terminate()
+                return True # certificate obtained successfully!
+            read_fds, _, _ = select.select([fdmon], [], [], 0) # 0 = non blocking
+            if read_fds:
+                logcli_proc.terminate()
+                break # got some error messages from logcli.
     return False
 
 def add_default_certificate_name(main, sans=[]):
@@ -201,3 +223,37 @@ def traefik_last_acme_error_since(tstart):
     except subprocess.CalledProcessError as ex:
         acme_error = 'traefik_last_acme_error_since(): logcli error - ' + str(ex)
     return acme_error
+
+def validate_certificate_names(main, sans=[], timeout=30):
+    """Issue a certificate request to ACME server and return if it has
+    been obtained or not."""
+    # Check if we already have the same certificate in acme.json:
+    if has_acmejson_cert(main, sans):
+        return True
+    routerconf = {
+        "http": {
+            "services": {
+                "_validation000": {
+                    "loadBalancer": {
+                        "servers": ["ping@internal"]
+                    }
+                }
+            },
+            "routers": {
+                "_validation000": {
+                    "rule": f"Host(`{main}`) && Path(`/_validation000`)",
+                    "priority": 100001,
+                    "service": "_validation000",
+                    "entryPoints": ["https"],
+                    "tls": {
+                        "domains": [{"main": main, "sans": sans}],
+                        "certResolver": "acmeServer",
+                    }
+                }
+            }
+        }
+    }
+    write_yaml_config(routerconf, "configs/_validation000.yml")
+    obtained = wait_acmejson_sync(timeout=timeout, interval=1.1, names=[main] + sans)
+    os.unlink("configs/_validation000.yml")
+    return obtained

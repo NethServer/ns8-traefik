@@ -71,7 +71,7 @@ if data.get("host") is not None:
 # Enable or disable Let's Encrypt certificate
 if data.get("host") is not None:
     if data["lets_encrypt"]:
-        router_https["tls"]["certresolver"] = "acmeServer"
+        router_https["tls"]["certResolver"] = "acmeServer"
 
 # IP addresses allowed to use the router
 if data.get('ip_allowlist', []) != []:

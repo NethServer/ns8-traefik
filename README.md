@@ -218,27 +218,22 @@ Output:
 
 ## set-certificate
 
-Run this action to request a Let's Encrypt certificate if [HTTP-01
-challenge](https://letsencrypt.org/docs/challenge-types/#http-01-challenge)
-requirements are met.
+Run this action to request a new default certificate for Traefik. The
+action parameters are:
 
-It can be used when there is no hostname (or hostname + path) route
-configured on traefik module or if the service is not make accessible via
-traefik.
+- `fqdn` (string): the name of the requested certificate
+- `sync_timeout` (integer, default `30`): the maximum number of seconds to
+  wait for the certificate to be obtained
 
-The action takes 3 parameters:
-- `fqdn`: the fqdn of the requested certificate
-- `sync`: wait until the certificate is obtained before return, default `false`.
-- `sync_timeout`: Max number of seconds to wait for the certificate to be obtained, default `120`.
+If ACME challenge requirements are met, the new certificate will be valid
+for the given `fqdn` and any other names configured by previous action
+calls. See also <https://letsencrypt.org/docs/challenge-types/>. If not,
+the previous configuration is retained.
 
 Example:
-```
-api-cli run module/traefik1/set-certificate --data '{"fqdn":"myhost.example.com","sync":false}'
-```
 
-Output:
-```json
-{"obtained": false}
+```
+api-cli run module/traefik1/set-certificate --data '{"fqdn":"myhost.example.com"}'
 ```
 
 ## get-certificate
@@ -260,16 +255,27 @@ Output:
 
 ## delete-certificate
 
-This action deletes an existing route used for explicit request a certificate.
+This action deletes a TLS certificate from Traefik's configuration. Its
+parameters are:
 
-NB. The certificate will **not** actually be removed from traefik and if the conditions will remain in place it will be renewed.
+- `fqdn` (string): the name of the TLS certificate
+- `type` (one of `internal` or `custom`): use `internal` for Let's Encrypt
+  certificates, `custom` for uploaded certificates.
 
-The action takes 1 parameter:
-- `fqdn`: the fqdn of the requested certificate
+The effects depend on the certificate type:
+
+- `internal` If the certificate was obtained from Let's Encrypt using the
+  ACME protocol, the `fqdn` is removed from Traefik's
+  `defaultGeneratedCert` configuration. The certificate will **not**
+  actually be removed from Traefik's `acme.json` certificate storage. Even
+  if unused, it will be renewed as long as the conditions permit.
+- `custom` If the certificate was uploaded, it is erased from disk along
+  with its private key and removed from Traefik's TLS configuration.
 
 Example:
+
 ```
-api-cli run delete-certificate --agent module/traefik1 --data "{\"fqdn\": \"$(hostname -f)\""
+api-cli run module/traefik1/delete-certificate --data '{"fqdn":"myhost.example.com","type":"internal"}'
 ```
 
 ## list-certificates

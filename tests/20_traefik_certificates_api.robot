@@ -19,27 +19,24 @@ Get configured ACME server
 
 Request an invalid certificate
     ${response} =  Run task    module/${MID}/set-certificate
-    ...    {"fqdn":"example.com"}
+    ...    {"fqdn":"example.com"}    rc_expected=2
     Should Be Equal As Strings    ${response['obtained']}    False
 
 Get invalid cerficate status
-    ${response} =  Run task    module/${MID}/get-certificate    {"fqdn": "example.com"}
-    Should Be Equal As Strings    ${response['fqdn']}        example.com
-    Should Be Equal As Strings    ${response['obtained']}    False
-    Should Be Equal As Strings    ${response['type']}    internal
+    ${response} =  Run task    module/${MID}/get-certificate    {"fqdn": "example.com"}    decode_json=${False}
+    Should Be Equal As Strings    ${response}        {}
 
 Get certificate list
-    ${response} =  Run task    module/${MID}/list-certificates    null
-    Should Contain    ${response}    example.com
+    ${response} =  Run task    module/${MID}/list-certificates    null    decode_json=${False}
+    Should Be Equal As Strings    ${response}    []
 
 Get expanded certificate list
-    ${response} =  Run task    module/${MID}/list-certificates    {"expand_list": true}
-    Should Be Equal As Strings    ${response[0]['fqdn']}        example.com
-    Should Be Equal As Strings    ${response[0]['obtained']}    False
-    Should Be Equal As Strings    ${response[0]['type']}    internal
+    ${response} =  Run task    module/${MID}/list-certificates    {"expand_list": true}    decode_json=${False}
+    Should Be Equal As Strings    ${response}    []
 
 Delete certificate
-    Run task    module/${MID}/delete-certificate   	 {"fqdn": "example.com"}
+    ${response} =  Run task    module/${MID}/delete-certificate
+    ...    {"fqdn": "example.com","type":"internal"}    decode_json=${False}    rc_expected=2
 
 Get empty certificates list
     ${response} =  Run task    module/${MID}/list-certificates    null
@@ -89,6 +86,6 @@ Upload a custom certificate
     Execute Command    runagent -m ${MID} python3 -c 'import agent ; agent.set_env("UPLOAD_CERTIFICATE_VERIFY_TYPE", "chain")'
 
 Delete custom certificate
-    Run task    module/${MID}/delete-certificate   	 {"fqdn": "test.example.com"}
+    Run task    module/${MID}/delete-certificate   	 {"fqdn": "test.example.com","type":"custom"}
     ${response} =    Execute Command    redis-cli --raw EXISTS module/${MID}/certificate/test.example.com
     Should Be Equal As Integers    ${response}    0

@@ -16,21 +16,32 @@ def main():
     tstart = datetime.datetime.now(datetime.UTC)
     request = json.load(sys.stdin)
     fqdn = request['fqdn']
-    if fqdn in cert_helpers.read_custom_cert_names():
-        cert_helpers.remove_custom_cert(fqdn)
-    elif fqdn in cert_helpers.read_default_cert_names():
-        cert_helpers.remove_default_certificate_name(fqdn)
-        obtained = cert_helpers.wait_acmejson_sync(timeout=request.get('sync_timeout', 30))
-        if not obtained:
+    if request['type'] == 'custom':
+        if fqdn in cert_helpers.read_custom_cert_names():
+            cert_helpers.remove_custom_cert(fqdn)
+        else:
+            exit_certificate_not_found_error(fqdn)
+    elif request['type'] == 'internal':
+        cur_names = cert_helpers.read_default_cert_names()
+        if not fqdn in cur_names:
+            exit_certificate_not_found_error(fqdn)
+        new_names = list(filter(lambda x: x != fqdn, cur_names))
+        if len(new_names) == 0:
+            cert_helpers.remove_default_certificate_name(fqdn)
+        elif cert_helpers.validate_certificate_names(main=new_names[0], sans=new_names[1:], timeout=request.get('sync_timeout', 30)):
+            cert_helpers.remove_default_certificate_name(fqdn)
+        else:
             acme_error = cert_helpers.traefik_last_acme_error_since(tstart)
             for errline in acme_error.split("\n"):
                 print(agent.SD_ERR + errline, file=sys.stderr)
-            exit(3)
+            sys.exit(3)
     else:
-        agent.set_status('validation-failed')
-        json.dump([{'field': 'fqdn','parameter':'fqdn','value': fqdn,'error':'certificate_not_found'}], fp=sys.stdout)
-        sys.exit(2)
-    json.dump(True, fp=sys.stdout)
+        sys.exit(4)
+
+def exit_certificate_not_found_error(fqdn):
+    agent.set_status('validation-failed')
+    json.dump([{'field': 'fqdn','parameter':'fqdn','value': fqdn,'error':'certificate_not_found'}], fp=sys.stdout)
+    sys.exit(2)
 
 if __name__ == "__main__":
     main()
