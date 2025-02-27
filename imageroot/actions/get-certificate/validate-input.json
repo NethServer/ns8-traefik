@@ -5,8 +5,8 @@
     "description": "Get status of a requested certificate",
     "examples": [
         {
-        "fqdn": "example.com"
-    }
+            "fqdn": "example.com"
+        }
     ],
     "type": "object",
     "required": [
@@ -14,7 +14,7 @@
     ],
     "properties": {
         "fqdn": {
-            "type":"string",
+            "type": "string",
             "format": "hostname",
             "title": "A fully qualified domain name"
         }
