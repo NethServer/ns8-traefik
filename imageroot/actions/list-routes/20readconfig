@@ -10,6 +10,7 @@ import os
 import agent
 import sys
 import urllib.request
+import urllib.parse
 from get_route import get_route
 
 
@@ -17,10 +18,26 @@ api_path = os.environ["API_PATH"]
 
 data = json.load(sys.stdin)
 
-# Get the list of routers keys
+# Get the list of routers keys with pagination support
 try:
-    with urllib.request.urlopen(f'http://127.0.0.1/{api_path}/api/http/routers') as res:
-        traefik_routes = json.load(res)
+    traefik_routes = []
+    page = 1
+    base_url = 'http://127.0.0.1/'
+    api_endpoint = f'{api_path}/api/http/routers'
+    url = urllib.parse.urljoin(base_url, api_endpoint)
+    while True:
+        params = urllib.parse.urlencode({'page': page, 'per_page': 100})
+        with urllib.request.urlopen(f"{url}?{params}") as res:
+            page_routes = json.load(res)
+            traefik_routes.extend(page_routes)
+
+            # Check if there are more pages
+            if ('X-Next-Page' not in res.headers or
+                not res.headers['X-Next-Page'] or
+                int(res.headers['X-Next-Page']) <= page):
+                break
+            else:
+                page = int(res.headers['X-Next-Page'])
 except urllib.error.URLError as e:
     raise Exception(f'Error reaching traefik daemon: {e.reason}')
 
