@@ -119,7 +119,7 @@ Get expanded routes list
             Should Be Equal As Integers   ${response[${I}]['priority']}        3
             Should Be Equal As Strings    ${response[${I}]['path']}            /bar
             Should Be Equal As Strings    ${response[${I}]['host']}            bar.example.org
-            Should Be Equal As Strings    ${response[${I}]['url']}             http://127.0.0.0:2000
+            Should Be Equal As Strings    ${response[${I}]['url']}              http://127.0.0.0:2000
             Should Be Equal As Strings    ${response[${I}]['lets_encrypt']}    True
             Should Be Equal As Strings    ${response[${I}]['http2https']}      True
             Should Be Equal As Strings    ${response[${I}]['skip_cert_verify']}  True
@@ -142,3 +142,26 @@ Delete routes
 Expect initial routes list
     ${response} =  Run task    module/${MID}/list-routes    null    decode_json=${False}
     Should Be Equal As Strings    ${response}    ["cluster-admin"]
+
+# Pagination Tests
+
+Create multiple routes for pagination
+    FOR    ${i}    IN RANGE    1    200
+        ${response} =  Run task    module/${MID}/set-route
+        ...    {"instance": "module${i}", "url": "http://127.0.0.0:2000", "path": "/path${i}", "lets_encrypt": false, "http2https": true}
+    END
+
+Verify pagination of routes list
+    ${response} =  Run task    module/${MID}/list-routes
+    ${routes_length} =         Get Length    ${response}
+    Should Be Equal As Integers    ${routes_length}    200
+
+Verify pagination of expanded routes list
+    ${response} =  Run task    module/${MID}/list-routes    {"expand_list": true}
+    ${routes_length} =         Get Length    ${response}
+    Should Be Equal As Integers    ${routes_length}    200
+
+Delete paginated routes
+    FOR    ${i}    IN RANGE    1    200
+        Run task    module/${MID}/delete-route   	 {"instance": "module${i}"}
+    END
