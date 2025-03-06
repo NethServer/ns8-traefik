@@ -20,7 +20,6 @@
     "properties": {
         "fqdn": {
             "type": "string",
-            "format": "hostname",
             "title": "A fully qualified domain name"
         },
         "type": {
