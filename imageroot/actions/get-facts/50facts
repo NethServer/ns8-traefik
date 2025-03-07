@@ -12,19 +12,36 @@ import os
 import sys
 import urllib.request
 from get_route import get_route
-from custom_certificate_manager import list_custom_certificates
-from get_certificate import get_certificate
+import cert_helpers
 
 api_path = os.environ["API_PATH"]
 
+# Get the list of routers keys with pagination support
 try:
-    with urllib.request.urlopen(f'http://127.0.0.1/{api_path}/api/http/routers') as res:
-        traefik_routes = json.load(res)
+    traefik_routes = []
+    page = 1
+    base_url = 'http://127.0.0.1/'
+    api_endpoint = f'{api_path}/api/http/routers'
+    url = urllib.parse.urljoin(base_url, api_endpoint)
+    while True:
+        params = urllib.parse.urlencode({'page': page, 'per_page': 100})
+        with urllib.request.urlopen(f"{url}?{params}") as res:
+            page_routes = json.load(res)
+            traefik_routes.extend(page_routes)
+
+            # Check if there are more pages
+            if ('X-Next-Page' not in res.headers or
+                not res.headers['X-Next-Page'] or
+                int(res.headers['X-Next-Page']) <= page):
+                break
+            else:
+                page = int(res.headers['X-Next-Page'])
 except urllib.error.URLError as e:
     raise Exception(f'Error reaching traefik daemon: {e.reason}')
 
 info = {"custom_path_routes": 0, "custom_host_routes": 0, "custom_certificates": 0, "acme_manual_certificates": 0, "acme_auto_certificates": 0, "acme_failed_certificates": 0}
 
+seen_host_names = set()
 for route in traefik_routes:
     # List routes
     if route['name'].endswith('-https@file'):
@@ -37,18 +54,19 @@ for route in traefik_routes:
                 info["custom_path_routes"] += 1
             if r.get('host'):
                 info["custom_host_routes"] += 1
+                if not r['host'] in seen_host_names:
+                    seen_host_names.add(r['host'])
+                    if not cert_helpers.has_acmejson_name(r['host']):
+                        info["acme_failed_certificates"] += 1
 
-    # List acme certificates
-    if "certResolver" in route.get("tls", {}) and route['status'] == 'enabled':
-        cert = get_certificate({'name': route['name']})
-        if cert.get('type') == 'internal':
-            info["acme_manual_certificates"] += 1
-        else:
+        # Number of ACME certificates requested by HTTP routes
+        if r.get('lets_encrypt'):
             info["acme_auto_certificates"] += 1
-        if 'obtained' in cert and not cert["obtained"]:
-            info["acme_failed_certificates"] += 1
+
+# Number of DNS names added to the default certificate
+info["acme_manual_certificates"] = len(cert_helpers.read_default_cert_names())
 
 # Retrieve custom certificate
-info["custom_certificates"] = len(list_custom_certificates())
+info["custom_certificates"] = len(cert_helpers.read_custom_cert_names())
 
 json.dump(info, fp=sys.stdout)
