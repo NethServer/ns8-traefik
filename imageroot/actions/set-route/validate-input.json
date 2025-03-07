@@ -59,34 +59,8 @@
     ],
     "type": "object",
     "required": [
-        "instance",
-        "url",
-        "http2https"
+        "instance"
     ],
-    "anyOf": [
-        {
-            "required": [
-                "host"
-            ]
-        },
-        {
-            "required": [
-                "path"
-            ]
-        }
-    ],
-    "dependencies": {
-        "host": {
-            "required": [
-                "lets_encrypt"
-            ]
-        },
-        "strip_prefix": {
-            "required": [
-                "path"
-            ]
-        }
-    },
     "properties": {
         "instance": {
             "type": "string",
@@ -121,7 +95,7 @@
             ]
         },
         "priority": {
-            "type":"integer",
+            "type": "integer",
             "description": "Override the default priority assignment (1,2,3), based on host and path",
             "minimum": 0
         },
@@ -145,7 +119,7 @@
             "title": "Slash redirect",
             "description": "Redirect to path with trailing slash"
         },
-       "skip_cert_verify": {
+        "skip_cert_verify": {
             "type": "boolean",
             "title": "Skip certificate verification",
             "description": "Do not verify the backend's certificate"
@@ -156,10 +130,10 @@
             "description": "If true, the route is flagged as manually created by a user"
         },
         "ip_allowlist": {
-            "type":"array",
+            "type": "array",
             "description": "List of allowed client ip addresses, in CIDR format",
             "items": {
-                "type":"string"
+                "type": "string"
             }
         },
         "headers": {
@@ -203,12 +177,17 @@
             }
         },
         "forward_auth": {
-            "type": "object",
-            "required": [
-                "address"
+            "type": [
+                "object"
             ],
+            "dependencies": {
+                "skip_tls_verify": [
+                    "address"
+                ]
+            },
             "title": "Forward Auth configuration",
-            "description": "If set enabled forwardAuth prop on traefik",
+            "description": "If set enabled forwardAuth prop on traefik. If null",
+            "additionalProperties": false,
             "properties": {
                 "address": {
                     "type": "string",
