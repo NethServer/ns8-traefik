@@ -2,11 +2,11 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "get-certificate input",
     "$id": "http://schema.nethserver.org/traefik/get-certificate-input.json",
-    "description": "Get status of a requested certificate",
+    "description": "Get certificates matching the fqdn parameter",
     "examples": [
         {
-        "fqdn": "example.com"
-    }
+            "fqdn": "example.com"
+        }
     ],
     "type": "object",
     "required": [
@@ -14,9 +14,16 @@
     ],
     "properties": {
         "fqdn": {
-            "type":"string",
-            "format": "hostname",
-            "title": "A fully qualified domain name"
+            "description": "A fully qualified domain name",
+            "type": "string",
+            "oneOf": [
+                {
+                    "format": "hostname"
+                },
+                {
+                    "pattern": "^\\*\\."
+                }
+            ]
         }
     }
 }

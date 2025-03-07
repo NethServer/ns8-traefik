@@ -22,9 +22,9 @@ Request an invalid certificate
     ...    {"fqdn":"example.com"}    rc_expected=2
     Should Be Equal As Strings    ${response['obtained']}    False
 
-Get invalid cerficate status
-    ${response} =  Run task    module/${MID}/get-certificate    {"fqdn": "example.com"}    decode_json=${False}
-    Should Be Equal As Strings    ${response}        {}
+Get invalid certificate status
+    ${response} =  Run task    module/${MID}/get-certificate    {"fqdn": "example.com"}
+    Should Be Equal As Strings    ${response['type']}    selfsigned
 
 Get certificate list
     ${response} =  Run task    module/${MID}/list-certificates    null    decode_json=${False}

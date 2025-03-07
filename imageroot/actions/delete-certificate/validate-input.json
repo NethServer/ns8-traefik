@@ -27,9 +27,16 @@
             ]
         },
         "fqdn": {
+            "description": "A fully qualified domain name",
             "type": "string",
-            "format": "hostname",
-            "title": "A fully qualified domain name"
+            "oneOf": [
+                {
+                    "format": "hostname"
+                },
+                {
+                    "pattern": "^\\*\\."
+                }
+            ]
         }
     }
 }

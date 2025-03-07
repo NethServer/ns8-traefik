@@ -13,6 +13,32 @@ import glob
 import subprocess
 import datetime
 import select
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+
+def extract_certified_names(cert_data : bytearray) -> set:
+    """
+    Extract the subject common name and subject alternative names (SAN)
+    from a PEM certificate.
+
+    :param cert_data: Certificate, PEM-encoded.
+    :return: A set of certified host names.
+    """
+    cert = x509.load_pem_x509_certificate(cert_data, default_backend())
+    hostnames = set()
+    # Extract Common Name (CN) from the Subject field
+    subject = cert.subject
+    cn = subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
+    if cn:
+        hostnames.add(cn[0].value)
+    # Extract Subject Alternative Names (SANs), if any
+    try:
+        ext = cert.extensions.get_extension_for_oid(x509.ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+        san = ext.value
+        hostnames.update(san.get_values_for_type(x509.DNSName))
+    except x509.ExtensionNotFound:
+        pass
+    return hostnames
 
 def read_default_cert_names():
     """Return the list of host names configured in the
