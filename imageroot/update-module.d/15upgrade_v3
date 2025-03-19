@@ -19,6 +19,7 @@ yaml_options = {
 }
 
 def main():
+    agent.run_helper("mkdir", "-vp", "manual_flags")
     static_cfg = yaml.safe_load(open("traefik.yaml"))
     upgrade_to_v3(static_cfg)
 
