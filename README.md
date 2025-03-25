@@ -318,7 +318,7 @@ The action parameters are:
 
 Example:
 ```
-api-cli run set-acme-server  --agent module/traefik1 --data '{"url":"https://acme-staging-v02.api.letsencrypt.org/directory"}
+api-cli run set-acme-server  --agent module/traefik1 --data '{"url":"https://acme-staging-v02.api.letsencrypt.org/directory"}'
 ```
 
 ## get-acme-server
