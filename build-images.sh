@@ -10,7 +10,7 @@ container=$(buildah from scratch)
 buildah add "${container}" imageroot /imageroot
 buildah add "${container}" ui /ui
 buildah config --entrypoint=/ \
-    --label="org.nethserver.images=docker.io/traefik:v3.3.4" \
+    --label="org.nethserver.images=docker.io/traefik:v3.4.0" \
     --label="org.nethserver.flags=core_module" \
     "${container}"
 buildah commit "${container}" "${repobase}/${reponame}"
