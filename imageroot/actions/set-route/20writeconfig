@@ -130,6 +130,10 @@ if data.get('user_created') is not None and data["user_created"] is True:
 # Setup forward route
 if data.get("forward_auth"):
     middlewares[f'{data["instance"]}-auth'] = { "forwardAuth": {"address": data["forward_auth"]["address"], "tls": { "insecureSkipVerify": data["forward_auth"].get("skip_tls_verify", False) }}}
+    if data["forward_auth"].get("auth_response_headers"):
+        middlewares[f'{data["instance"]}-auth']["forwardAuth"]["authResponseHeaders"] = data["forward_auth"]["auth_response_headers"]
+    else:
+        middlewares[f'{data["instance"]}-auth']["forwardAuth"].pop('authResponseHeaders', None)
     router_http["middlewares"].append(f'{data["instance"]}-auth')
     router_https["middlewares"].append(f'{data["instance"]}-auth')
 

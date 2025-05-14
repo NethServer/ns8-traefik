@@ -53,7 +53,10 @@
             "http2https": true,
             "forward_auth": {
                 "address": "http://127.0.0.1:9311/module/mod1/http-basic/action-fake",
-                "skip_tls_verify": true
+                "skip_tls_verify": true,
+                "auth_response_headers": [
+                    "X-Auth-User"
+                ]
             }
         }
     ],

@@ -129,6 +129,28 @@ api-cli run set-route --agent module/traefik1 --data - <<EOF
 }
 EOF
 ```
+
+With `forward_auth` and `auth_response_headers`
+```
+api-cli run set-route --agent module/traefik1 --data - <<EOF
+{
+  "instance": "module1",
+  "url": "http://127.0.0.1/add-module1",
+  "host": "127.0.0.1",
+  "lets_encrypt": false,
+  "http2https": false,
+  "skip_cert_verify": false,
+  "forward_auth": {
+      "address": "http://127.0.0.1:9311/api/module/module1/http-basic/add-module1",
+      "skip_tls_verify": true,
+      "auth_response_headers": [
+        "X-Auth-User",
+        "X-Auth-Group"
+      ]
+  }
+}
+EOF
+```
 ## get-route
 
 This action get an existing route. It returns a JSON object that describes the route configuration, if the
