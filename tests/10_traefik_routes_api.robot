@@ -20,6 +20,11 @@ Create an invalid path route
     Run Keyword And Expect Error    *    Run task    module/${MID}/set-route
     ...    {"instance": "module4", "url": "http://127.0.0.0:2000", "path": "bar", "lets_encrypt": true, "http2https": true, "skip_cert_verify": true, "headers": {"request": {"X-foo-add": "foo", "X-bar-remove": ""}, "response": {"X-bar-add": "bar", "X-foo-remove": ""}}}
 
+Create a host rule with forward auth
+    ${response} =  Run task    module/${MID}/set-route
+    ...    {"instance": "module5", "url": "http://127.0.0.0:2000", "host": "foo.example.org", "lets_encrypt": true, "http2https": true, "skip_cert_verify": true, "headers": {"request": {"X-foo-add": "foo", "X-bar-remove": ""}, "response": {"X-bar-add": "bar", "X-foo-remove": ""}}, "forward_auth": { "address": "http://127.0.0.1:9311/api/module/module1/http-basic/add-module1", "skip_tls_verify": true, "auth_response_headers": [ "X-Auth-User"] }}
+
+
 Get path route
     ${response} =  Run task    module/${MID}/get-route    {"instance": "module1"}
     Should Be Equal As Strings    ${response['instance']}        module1
@@ -129,6 +134,10 @@ Get expanded routes list
             Should Be Equal As Strings    ${response[${I}]['headers']['request']['X-bar-remove']}    ${EMPTY}
             Should Be Equal As Strings    ${response[${I}]['headers']['response']['X-bar-add']}    bar
             Should Be Equal As Strings    ${response[${I}]['headers']['response']['X-foo-remove']}    ${EMPTY}
+        ELSE IF        $response[$I]['instance'] == "module5"
+            Should Be Equal As Strings    ${response[${I}]['forward_auth']['address']}    http://127.0.0.1:9311/api/module/module1/http-basic/add-module1
+            Should Be Equal As Strings    ${response[${I}]['forward_auth']['skip_tls_verify']}    True
+            Should Be Equal As Strings    ${response[${I}]['forward_auth']['auth_response_headers'][0]}    X-Auth-User
         ELSE
             Fail    Unexpected HTTP route ${response[${I}]['instance']}
         END
@@ -138,6 +147,7 @@ Delete routes
     Run task    module/${MID}/delete-route   	 {"instance": "module1"}
     Run task    module/${MID}/delete-route   	 {"instance": "module2"}
     Run task    module/${MID}/delete-route   	 {"instance": "module3"}
+    Run task    module/${MID}/delete-route   	 {"instance": "module5"}
 
 Expect initial routes list
     ${response} =  Run task    module/${MID}/list-routes    null    decode_json=${False}

@@ -118,7 +118,7 @@ api-cli run set-route --agent module/traefik1 --data - <<EOF
 {
   "instance": "module1",
   "url": "http://127.0.0.1/add-module1",
-  "host": "127.0.0.1",
+  "host": "module.example.org",
   "lets_encrypt": false,
   "http2https": false,
   "skip_cert_verify": false,
@@ -136,7 +136,7 @@ api-cli run set-route --agent module/traefik1 --data - <<EOF
 {
   "instance": "module1",
   "url": "http://127.0.0.1/add-module1",
-  "host": "127.0.0.1",
+  "host": "module.example.org",
   "lets_encrypt": false,
   "http2https": false,
   "skip_cert_verify": false,
