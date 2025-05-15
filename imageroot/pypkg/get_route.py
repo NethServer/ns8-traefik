@@ -106,6 +106,8 @@ def get_route(data, ignore_error = False):
             route['forward_auth'] = {
                 'address': auth_middleware['forwardAuth']['address'],
             }
+            if 'authResponseHeaders' in auth_middleware['forwardAuth']:
+                route['forward_auth']['auth_response_headers'] = auth_middleware['forwardAuth']['authResponseHeaders']
             try:
                 route['forward_auth']['skip_tls_verify'] = auth_middleware['forwardAuth']['tls']['insecureSkipVerify']
             except KeyError:
