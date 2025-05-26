@@ -18,11 +18,12 @@
     ],
     "properties": {
         "fqdn": {
-            "description": "A fully qualified domain name",
+            "description": "A fully qualified domain name, or a wildcard name pattern",
             "type": "string",
             "oneOf": [
                 {
-                    "format": "hostname"
+                    "format": "hostname",
+                    "pattern": "\\."
                 },
                 {
                     "pattern": "^\\*\\."
