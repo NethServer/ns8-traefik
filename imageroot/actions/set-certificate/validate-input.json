@@ -9,6 +9,10 @@
         },
         {
             "fqdn": "example.com",
+            "check_routes": true
+        },
+        {
+            "fqdn": "example.com",
             "sync_timeout": 10
         }
     ],
@@ -17,6 +21,11 @@
         "fqdn"
     ],
     "properties": {
+        "check_routes": {
+            "type":"boolean",
+            "default": false,
+            "description": "If true, check the fqdn is not used by an HTTP route with Let's Encrypt flag set"
+        },
         "fqdn": {
             "description": "A fully qualified domain name, or a wildcard name pattern",
             "type": "string",
