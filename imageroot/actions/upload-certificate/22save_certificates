@@ -9,8 +9,12 @@ set -e
 
 ensure_final_newline() {
   local file="$1"
-  # If the last character is not a newline, append one
-  [ "$(tail -c1 "$file")" ] && printf '\n' >> "$file"
+  # Get last character
+  last_char=$(tail -c1 "$file")
+  # Check if last char is not a newline
+  if [ "$last_char" != "" ] && [ "$last_char" != $'\n' ]; then
+    printf '\n' >> "$file"
+  fi
 }
 
 CERT_FILE=uploaded_cert
