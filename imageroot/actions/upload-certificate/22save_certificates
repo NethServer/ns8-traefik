@@ -7,6 +7,16 @@
 
 set -e
 
+ensure_final_newline() {
+  local file="$1"
+  # Get last character
+  last_char=$(tail -c1 "$file")
+  # Check if last char is not a newline
+  if [ "$last_char" != "" ] && [ "$last_char" != $'\n' ]; then
+    printf '\n' >> "$file"
+  fi
+}
+
 CERT_FILE=uploaded_cert
 KEY_FILE=uploaded_key
 
@@ -15,6 +25,10 @@ trap 'rm -f $KEY_FILE $CERT_FILE' EXIT
 
 # extract common name
 cn_name=$(openssl x509 -noout -subject -nameopt=multiline -in $CERT_FILE | sed -n 's/ *commonName *= //p')
+
+# ensure that the custom cert/key ends with a trailing line
+ensure_final_newline "$CERT_FILE"
+ensure_final_newline "$KEY_FILE"
 
 # copy certificate in traefik shared directory
 cp $KEY_FILE "custom_certificates/$cn_name.key"
