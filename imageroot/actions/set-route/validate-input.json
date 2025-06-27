@@ -12,6 +12,14 @@
             "http2https": true
         },
         {
+            "instance": "module1",
+            "url": "http://127.0.0.0:2000",
+            "host": "module.example.org",
+            "path": null,
+            "lets_encrypt": true,
+            "http2https": true
+        },
+        {
             "instance": "module2",
             "url": "http://127.0.0.0:2000",
             "host": "module.example.org",
@@ -23,6 +31,14 @@
             "instance": "module3",
             "url": "http://127.0.0.0:2000",
             "path": "/foo",
+            "lets_encrypt": true,
+            "http2https": true
+        },
+        {
+            "instance": "module3",
+            "url": "http://127.0.0.0:2000",
+            "path": "/foo",
+            "host": null,
             "lets_encrypt": true,
             "http2https": true
         },
@@ -81,17 +97,23 @@
             "description": "The backend target URL."
         },
         "host": {
-            "type": "string",
+            "type": [
+                "string",
+                "null"
+            ],
             "format": "hostname",
             "pattern": "\\.",
             "title": "Virtualhost",
-            "description": "A fully qualified domain name as virtualhost."
+            "description": "A fully qualified domain name as virtualhost. NULL clears the current value."
         },
         "path": {
-            "type": "string",
+            "type": [
+                "string",
+                "null"
+            ],
             "pattern": "^/.*$",
             "title": "Request path prefix",
-            "description": "A path prefix, the matching evaluation will be performed whit and without the trailing slash, eg /foo will match `/foo and `/foo/*, also `/foo/` will match /foo and /foo/*",
+            "description": "A path prefix, the matching evaluation will be performed whit and without the trailing slash, eg /foo will match `/foo and `/foo/*, also `/foo/` will match /foo and /foo/*.  NULL clears the current value.",
             "examples": [
                 "/foo",
                 "/foo/"
