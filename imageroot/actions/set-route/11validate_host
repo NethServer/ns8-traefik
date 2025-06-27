@@ -16,7 +16,7 @@ agent.set_weight(os.path.basename(__file__), 0) # Validation step, no task progr
 # If parsing fails, output everything to stderr
 data = json.load(sys.stdin)
 
-if "host" in data and "path" not in data:
+if "host" in data and not data.get('path'):
     if data["host"] == '127.0.0.1' or data["host"] == 'localhost':
         agent.set_status('validation-failed')
         json.dump([{'field':'host','parameter':'host','value': data["host"],'error':'host_is_not_valid_not_localhost'}], fp=sys.stdout)
