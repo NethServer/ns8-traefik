@@ -385,3 +385,42 @@ verification is controlled by the following environment settings:
 
 - `UPLOAD_CERTIFICATE_VERIFY_TYPE=none` – Certificate verification is
   skipped. Use this value to disable expiration date checks.
+
+## set-trusted-proxies
+
+This action configures trusted proxies for Traefik, allowing it to correctly identify
+and log the original public IP address of incoming requests, rather than the proxy's IP.
+This is useful when Traefik is behind a reverse proxy or load balancer.
+
+### Parameters
+
+- `proxies`: List of trusted proxy IP addresses (e.g., `["192.168.100.1"]`)
+- `depth`: Number of proxy hops to trust (integer)
+
+### Example
+
+```
+api-cli run module/traefik1/set-trusted-proxies --data '{"depth": 1, "proxies": ["192.168.100.1"]}'
+```
+
+After setting trusted proxies, the correct public IP will appear in logs:
+
+```
+Aug 20 10:51:11 ns8-leader traefik[1916]: xxx.xxx.xxx.xxx - - [20/Aug/2025:08:51:11 +0000] "POST /api/v4/channels/members/me/view HTTP/1.1" 200 42 "-" "-" 221 "mattermost1-https@file" "http://127.0.0.1:20001" 1ms
+```
+
+---
+
+## get-trusted-proxies
+
+This action returns the current trusted proxy configuration.
+
+### Example
+
+```
+api-cli run module/traefik1/get-trusted-proxies
+```
+
+Output:
+```json
+{"proxies": ["192.168.100.1"], "depth": 1}
