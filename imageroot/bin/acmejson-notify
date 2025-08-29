@@ -11,6 +11,7 @@ import sys
 import agent
 import subprocess
 import argparse
+import cert_helpers
 
 def main():
     argp = argparse.ArgumentParser(
@@ -36,20 +37,13 @@ def parse_acme_certificates(acme_path : str) -> set:
     acme_path, represented by tuples of:
 
     - DNS names (tuple of strings),
-    - certificate (base64 string),
+    - certificate serial number (string),
     """
-    try:
-        with open(acme_path) as jf:
-            jacme = json.load(jf)
-            jcerts = jacme["acmeServer"]["Certificates"] or []
-    except (FileNotFoundError, json.JSONDecodeError, KeyError) as ex:
-        print(f"File {acme_path} is missing, empty or not initialized:", ex, file=sys.stderr)
-        return set()
     certs = set()
-    for jcert in jcerts:
+    for dcert in cert_helpers.list_internal_certificates(acmejson_path=acme_path, with_details=True):
         certs.add((
-            (jcert['domain']['main'],) + tuple(jcert['domain'].get('sans', [])),
-            jcert['certificate'],
+            tuple(dcert['traefik_names']),
+            dcert['serial'],
         ))
     return certs
 

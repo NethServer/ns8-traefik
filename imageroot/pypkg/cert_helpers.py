@@ -13,6 +13,8 @@ import glob
 import subprocess
 import datetime
 import select
+import re
+import base64
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
@@ -63,6 +65,20 @@ def read_custom_cert_names():
         main_hostnames.append(hostname)
     return main_hostnames
 
+def read_names_of_automatic_http_routes() -> set:
+    """Parse automatic HTTP route configurations and extract the ACME certificate names."""
+    route_names = set()
+    host_pattern = re.compile(r'Host\(`(.*?)`\)')
+    for cfgpath in glob.glob("configs/*.yml"):
+        if cfgpath.startswith("configs/_"):
+            continue # skip builtin files
+        ocfg = parse_yaml_config(cfgpath)
+        for orouter in ocfg.get('http', {}).get('routers', {}).values():
+            rule_hosts = re.findall(host_pattern, orouter['rule'])
+            if orouter.get('tls', {}).get('certResolver') == 'acmeServer':
+                route_names.update(rule_hosts)
+    return route_names
+
 def remove_custom_cert(name):
     """Remove the custom/uploaded certificate files and its Traefik
 
@@ -90,38 +106,28 @@ def remove_custom_cert(name):
     rdb.delete(f'module/{os.environ["MODULE_ID"]}/certificate/{name}')
     return old_names
 
-def has_acmejson_name(name):
-    """Return True if name is found among acme.json Certificates."""
-    try:
-        with open('acme/acme.json', 'r') as fp:
-            acmejson = json.load(fp)
-        for ocert in acmejson['acmeServer']["Certificates"] or []:
-            if ocert["domain"]["main"] == name or name in ocert["domain"].get("sans", []):
-                return True
-    except (FileNotFoundError, KeyError, json.JSONDecodeError):
-        pass
+def has_acmejson_name(name: str) -> bool:
+    """Return True if a certificate for name is found among acme.json
+    Certificates."""
+    for dcert in list_internal_certificates(with_details=False):
+        if name in dcert['traefik_names']:
+            return True
     return False
 
-def has_acmejson_cert(main, sans=[]):
-    """Return True if a certificate matching main and sans is found among
-    acme.json Certificates."""
-    try:
-        with open('acme/acme.json', 'r') as fp:
-            acmejson = json.load(fp)
-        for ocert in acmejson['acmeServer']["Certificates"] or []:
-            if ocert["domain"]["main"] == main and set(ocert["domain"].get("sans", [])) == set(sans):
-                return True
-        return False
-    except (FileNotFoundError, KeyError, json.JSONDecodeError):
-        pass
+def has_acmejson_cert(names: set) -> bool:
+    """Return True if a certificate for the exact set of names is found
+    among acme.json Certificates."""
+    for dcert in list_internal_certificates(with_details=False):
+        if set(dcert['traefik_names']) == names:
+            return True
     return False
 
 def wait_acmejson_sync(timeout=120, interval=2.1, names=[]):
     """Poll the acme.json file every 'interval' seconds, until a
     certificate matching 'names' appears, an error occurs, or timeout
-    seconds are elapsed. If list 'names' is given, it is expected to have
-    subject at index 0 and sans in the rest of the list. If not, this
-    function waits for the default certificate."""
+    seconds are elapsed. If list 'names' is given, it is expected to match
+    a certficate set of names in acme.json. If not, this function waits
+    for a certificate as configured in _default_cert.yml."""
     if not names:
         # Wait for the default certificate.
         names = read_default_cert_names()
@@ -152,7 +158,7 @@ def wait_acmejson_sync(timeout=120, interval=2.1, names=[]):
                 print(agent.SD_ERR + f"Timeout after about {timeout} seconds. Certificate not obtained for {names}.", file=sys.stderr)
                 obtained = False
                 break
-            if has_acmejson_cert(names[0], names[1:]):
+            if has_acmejson_cert(set(names)):
                 obtained = True # certificate obtained successfully!
                 break
             read_fds, _, _ = select.select([fdmon], [], [], 0) # 0 = non blocking
@@ -272,7 +278,7 @@ def validate_certificate_names(main, sans=[], timeout=30):
     """Issue a certificate request to ACME server and return if it has
     been obtained or not."""
     # Check if we already have the same certificate in acme.json:
-    if has_acmejson_cert(main, sans):
+    if has_acmejson_cert(set([main] + sans)):
         return True
     routerconf = {
         "http": {
@@ -301,3 +307,79 @@ def validate_certificate_names(main, sans=[], timeout=30):
     obtained = wait_acmejson_sync(timeout=timeout, interval=1.1, names=[main] + sans)
     os.unlink("configs/_validation000.yml")
     return obtained
+
+
+
+def extract_certificate_attributes(cert_data : bytearray) -> dict:
+    """
+    Extract the certificate attributes from a PEM certificate.
+
+    :param cert_data: Certificate, PEM-encoded.
+    :return: A dict of attributes
+    """
+    def x509_name_to_string(oname):
+        # Extract Common Name (CN) from the given oname:
+        cn = oname.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
+        if cn:
+            return cn[0].value # CN found, use it
+        else:
+            return None
+
+    cert = x509.load_pem_x509_certificate(cert_data, default_backend())
+    hostnames = set()
+    main_name = x509_name_to_string(cert.subject)
+    if main_name:
+        hostnames.add(main_name)
+    # Extract Subject Alternative Names (SANs), if any
+    try:
+        ext = cert.extensions.get_extension_for_oid(x509.ExtensionOID.SUBJECT_ALTERNATIVE_NAME)
+        san = ext.value
+        hostnames.update(san.get_values_for_type(x509.DNSName))
+    except x509.ExtensionNotFound:
+        pass
+
+    return {
+        "names": sorted(hostnames),
+        "subject": x509_name_to_string(cert.subject) or cert.subject.rfc4514_string(),
+        "issuer": cert.issuer.rfc4514_string(),
+        "serial": str(cert.serial_number),
+        "valid_to": cert.not_valid_after.replace(tzinfo=datetime.timezone.utc),
+        "valid_from": cert.not_valid_before.replace(tzinfo=datetime.timezone.utc),
+    }
+
+def list_internal_certificates(acmejson_path: str='acme/acme.json', with_details: bool=True) -> list:
+    """Parse acme.json and extract the list certificates with X.509
+    detailed attributes. With option with_details=False, only the
+    certificate names assigned by Traefik are extracted."""
+    try:
+        if os.path.getsize(acmejson_path) == 0:
+            return []
+        with open(acmejson_path, 'r') as fp:
+            acmejson = json.load(fp)
+        acmecerts = acmejson['acmeServer']["Certificates"] or []
+    except (FileNotFoundError, KeyError, json.JSONDecodeError) as ex:
+        print(agent.SD_WARNING + "Failed to parse acme.json:", ex, file=sys.stderr)
+        return []
+    certificates = []
+    for ocert in acmecerts:
+        if 'certificate' in ocert:
+            dcert = {
+                "traefik_names": [ocert['domain']['main']] + ocert['domain'].get('sans', [])
+            }
+            if with_details:
+                bcert = base64.b64decode(ocert["certificate"])
+                dcert.update(extract_certificate_attributes(bcert))
+            certificates.append(dcert)
+    return certificates
+
+def list_custom_certificates():
+    certificates = []
+    for cert_path in glob.glob("custom_certificates/*.crt"):
+        try:
+            with open(cert_path, 'rb') as fp:
+                dcert = extract_certificate_attributes(fp.read())
+            dcert['path'] = cert_path
+            certificates.append(dcert)
+        except Exception as ex:
+            print(agent.SD_WARNING + "Failed to parse certificate", cert_path, ":", ex, file=sys.stderr)
+    return certificates

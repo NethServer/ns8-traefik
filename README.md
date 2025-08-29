@@ -300,32 +300,61 @@ Example:
 api-cli run module/traefik1/delete-certificate --data '{"fqdn":"myhost.example.com","type":"internal"}'
 ```
 
-## list-certificates
+## list-certificates-v2
 
-This action returns a list of requested certificate, the list is an JSON array, and if no certificate was requested, an
-empty array is returned.
-
-The action takes 1 optional parameter:
-- `expand_list`: if set to `true` the list will be expanded with all certificate's details
+This action returns the detailed attributes of TLS certificates known to
+Traefik. Refer to the action `validate-output.json` schema for the
+attribute descriptions.
 
 Example:
 ```
-api-cli run module/traefik1/list-certificates
+api-cli run module/traefik1/list-certificates-v2
 ```
 
-Output (brief format):
+Output:
 ```json
-["myhost.example.com"]
-```
-
-Example list expanded:
-```
-api-cli run module/traefik1/list-certificates --data '{"expand_list": true}'
-```
-
-Output (expanded format):
-```json
-[{"fqdn": "myhost.example.com", "obtained": true, "type": "internal"}]
+{
+  "certificates": [
+    {
+      "names": [
+        "dokuwiki1.dp.nethserver.net"
+      ],
+      "subject": "dokuwiki1.dp.nethserver.net",
+      "issuer": "CN=(STAGING) Tenuous Tomato R13,O=(STAGING) Let's Encrypt,C=US",
+      "serial": "3856185763134404048717648492547484375729159",
+      "valid_to": "2025-12-03T06:42:34+00:00",
+      "valid_from": "2025-09-04T06:42:35+00:00",
+      "validity": "valid",
+      "type": "internal",
+      "automatic": true
+    },
+    {
+      "names": [
+        "piler1.dp.nethserver.net"
+      ],
+      "subject": "piler1.dp.nethserver.net",
+      "issuer": "CN=(STAGING) Riddling Rhubarb R12,O=(STAGING) Let's Encrypt,C=US",
+      "serial": "3875501012854752351612754224168371968359414",
+      "valid_to": "2025-12-03T06:42:46+00:00",
+      "valid_from": "2025-09-04T06:42:47+00:00",
+      "validity": "valid",
+      "type": "internal"
+    },
+    {
+      "names": [
+        "mail.dp.nethserver.net"
+      ],
+      "subject": "mail.dp.nethserver.net",
+      "issuer": "CN=Custom Intermediate CA,O=TestIntermediateCA,L=TestCity,ST=TestState,C=XX",
+      "serial": "603545327999770137768033575467090432240151056165",
+      "valid_to": "2026-02-07T14:19:38+00:00",
+      "valid_from": "2025-02-07T14:19:38+00:00",
+      "path": "custom_certificates/mail.dp.nethserver.net.crt",
+      "validity": "valid",
+      "type": "custom"
+    }
+  ]
+}
 ```
 
 ## set-acme-server
