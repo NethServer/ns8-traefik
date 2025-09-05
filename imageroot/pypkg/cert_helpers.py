@@ -314,6 +314,9 @@ def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={
             return set() # nothing to do
     if not removed_names:
         return set() # nothing has been purged
+    default_cert_names = set(read_default_cert_names())
+    if default_cert_names == removed_names:
+        reset_selfsigned_certificate()
     #
     # Write the new acme.json file and restart Traefik
     #
