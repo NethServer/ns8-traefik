@@ -13,47 +13,23 @@ import agent
 import datetime
 
 def main():
-    tstart = datetime.datetime.now(datetime.UTC)
     request = json.load(sys.stdin)
-    fqdn = request['fqdn']
-    changed_dns_names = {fqdn}
     if request['type'] == 'custom':
-        if fqdn in cert_helpers.read_custom_cert_names():
-            old_names = cert_helpers.remove_custom_cert(fqdn)
-            changed_dns_names.update(set(old_names))
-        else:
-            exit_certificate_not_found_error(fqdn)
+        old_names = cert_helpers.remove_custom_cert_by_path(request['path'])
+        if not old_names:
+            exit_certificate_not_found_error('path', request['path'])
     elif request['type'] == 'internal':
-        cur_names = cert_helpers.read_default_cert_names()
-        if not fqdn in cur_names:
-            exit_certificate_not_found_error(fqdn)
-        changed_dns_names.update(set(cur_names))
-        new_names = list(filter(lambda x: x != fqdn, cur_names))
-        if len(new_names) == 0:
-            cert_helpers.remove_default_certificate_name(fqdn)
-        elif cert_helpers.validate_certificate_names(main=new_names[0], sans=new_names[1:], timeout=request.get('sync_timeout', 30)):
-            cert_helpers.remove_default_certificate_name(fqdn)
+        old_names = cert_helpers.purge_acme_json_and_restart_traefik(purge_serial=request['serial'])
+        if old_names:
+            cert_helpers.clear_certresolver_in_http_routes(old_names)
         else:
-            acme_error = cert_helpers.traefik_last_acme_error_since(tstart)
-            for errline in acme_error.split("\n"):
-                print(agent.SD_ERR + errline, file=sys.stderr)
-            json.dump(False, fp=sys.stdout)
-            sys.exit(3)
-    notify_certificate_changed_event(changed_dns_names)
-    json.dump(True, fp=sys.stdout)
+            exit_certificate_not_found_error('serial', request['serial'])
+    json.dump({"certificate_names": list(old_names)}, fp=sys.stdout)
 
-def exit_certificate_not_found_error(fqdn):
+def exit_certificate_not_found_error(parameter, value):
     agent.set_status('validation-failed')
-    json.dump([{'field': 'fqdn','parameter':'fqdn','value': fqdn,'error':'certificate_not_found'}], fp=sys.stdout)
+    json.dump([{'field': parameter,'parameter': parameter,'value': value,'error':'certificate_not_found'}], fp=sys.stdout)
     sys.exit(2)
-
-def notify_certificate_changed_event(changed_dns_names):
-    rdb = agent.redis_connect(privileged=True)
-    rdb.publish(f"{os.environ['AGENT_ID']}/event/certificate-changed", json.dumps({
-        "node_id": int(os.environ['NODE_ID']),
-        "module_id": os.environ['MODULE_ID'],
-        "names": list(changed_dns_names),
-    }))
 
 if __name__ == "__main__":
     main()

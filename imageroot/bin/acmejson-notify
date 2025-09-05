@@ -22,8 +22,11 @@ def main():
     args = argp.parse_args()
     curr_acme_path = args.path
     prev_acme_path = curr_acme_path + '.acmejson-notify'
-    # Calculate differences between the new acme.json file and its previous version:
-    changed_certs = parse_acme_certificates(curr_acme_path) - parse_acme_certificates(prev_acme_path)
+    # Calculate symmetric difference between the new acme.json file and
+    # its previous version. The symmetric difference of two sets contains
+    # elements that are either in the first or in the second set, not
+    # both. The event is thus notified for both added and removed certificates.
+    changed_certs = parse_acme_certificates(curr_acme_path).symmetric_difference(parse_acme_certificates(prev_acme_path))
     changed_dns_names = set()
     for cert in changed_certs:
         changed_dns_names.update(set(cert[0]))

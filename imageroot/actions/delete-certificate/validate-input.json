@@ -5,38 +5,49 @@
     "description": "Delete a configured TLS certificate",
     "examples": [
         {
-            "fqdn": "example.com",
-            "type": "internal"
+            "path": "custom_certificates/mycert.crt",
+            "type": "custom"
         },
         {
-            "fqdn": "blog.example.net",
-            "type": "custom"
+            "serial": "548155130505306540286255320287329564948959",
+            "type": "internal"
         }
     ],
     "type": "object",
-    "required": [
-        "fqdn",
-        "type"
+    "oneOf": [
+        {
+            "required": [
+                "serial",
+                "type"
+            ],
+            "properties": {
+                "type": {
+                    "const": "internal"
+                }
+            }
+        },
+        {
+            "required": [
+                "path",
+                "type"
+            ],
+            "properties": {
+                "type": {
+                    "const": "custom"
+                }
+            }
+        }
     ],
     "properties": {
         "type": {
             "type": "string",
-            "enum": [
-                "custom",
-                "internal"
-            ]
+            "description": "Identify where the certificate is stored: internal (acme.json), custom (uploaded)"
         },
-        "fqdn": {
-            "description": "A fully qualified domain name",
-            "type": "string",
-            "oneOf": [
-                {
-                    "format": "hostname"
-                },
-                {
-                    "pattern": "^\\*\\."
-                }
-            ]
+        "serial": {
+            "type": "string"
+        },
+        "path": {
+            "type": "string"
         }
     }
 }

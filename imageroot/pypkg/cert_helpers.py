@@ -79,32 +79,36 @@ def read_names_of_automatic_http_routes() -> set:
                 route_names.update(rule_hosts)
     return route_names
 
-def remove_custom_cert(name):
+def remove_custom_cert_by_path(path: str) -> set:
     """Remove the custom/uploaded certificate files and its Traefik
-
     configuration.
 
-    :param name: main name of the custom certificate (primary key)
-    :return: list of names certified by the removed certificate
+    :param path: certificate path
+    :return: set of names certified by the removed certificate
     """
-    try:
-        with open(f"custom_certificates/{name}.crt", 'rb') as f:
-            bcert = f.read()
-        old_names = list(extract_certified_names(bcert))
-    except FileNotFoundError:
-        old_names = [name]
-    for path in [
-        f"custom_certificates/{name}.crt",
-        f"custom_certificates/{name}.key",
-        f"configs/certificate_{name}.yml",
-    ]:
+    cert_name = path.removeprefix("custom_certificates/").removesuffix(".crt")
+    if cert_name in read_custom_cert_names():
         try:
-            os.unlink(path)
+            with open(f"custom_certificates/{cert_name}.crt", 'rb') as f:
+                bcert = f.read()
+            old_names = extract_certified_names(bcert)
         except FileNotFoundError:
-            pass
-    rdb = agent.redis_connect(privileged=True)
-    rdb.delete(f'module/{os.environ["MODULE_ID"]}/certificate/{name}')
-    return old_names
+            old_names = {cert_name}
+        for path in [
+            f"custom_certificates/{cert_name}.crt",
+            f"custom_certificates/{cert_name}.key",
+            f"configs/certificate_{cert_name}.yml",
+        ]:
+            try:
+                os.unlink(path)
+            except FileNotFoundError:
+                pass
+        rdb = agent.redis_connect(privileged=True)
+        rdb.delete(f'module/{os.environ["MODULE_ID"]}/certificate/{cert_name}')
+        return old_names
+    else:
+        print(agent.SD_WARNING + f"Certificate {path} not found", file=sys.stderr)
+        return set()
 
 def has_acmejson_name(name: str) -> bool:
     """Return True if a certificate for name is found among acme.json
@@ -196,30 +200,6 @@ def add_default_certificate_name(main, sans=[]):
         defstore['defaultGeneratedCert']['domain']['sans'] = list(sans)
     write_yaml_config(tlsconf, 'configs/_default_cert.yml')
 
-def remove_default_certificate_name(name):
-    """Remove 'name' from defaultGeneratedCert configuration. If 'name'
-    matches the certificate main name, the first item of sans becomes the
-    certificate main name. If there are no more sans available, the
-    default self-signed certificate configuration is applied."""
-    tlsconf = parse_yaml_config("configs/_default_cert.yml")
-    defstore = tlsconf['tls']['stores']['default']
-    main = defstore['defaultGeneratedCert']['domain']['main']
-    names = defstore['defaultGeneratedCert']['domain'].get('sans', [])
-    if name == main:
-        if len(names) == 0:
-            reset_selfsigned_certificate()
-        elif len(names) == 1:
-            defstore['defaultGeneratedCert']['domain']['main'] = names[0]
-            defstore['defaultGeneratedCert']['domain']['sans'] = []
-            write_yaml_config(tlsconf, 'configs/_default_cert.yml')
-        else:
-            defstore['defaultGeneratedCert']['domain']['main'] = names[0]
-            defstore['defaultGeneratedCert']['domain']['sans'] = names[1:]
-            write_yaml_config(tlsconf, 'configs/_default_cert.yml')
-    else:
-        defstore['defaultGeneratedCert']['domain']['sans'].remove(name)
-        write_yaml_config(tlsconf, 'configs/_default_cert.yml')
-
 def reset_selfsigned_certificate():
     """Replaces the default certificate configuration, restoring the
     config for the self-signed one."""
@@ -308,7 +288,66 @@ def validate_certificate_names(main, sans=[], timeout=30):
     os.unlink("configs/_validation000.yml")
     return obtained
 
+def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={}) -> set:
+    """Lookup and delete acme.json certificates matching purge_serial or
+    purge_names. Use at most one argument."""
+    with open('acme/acme.json', 'r') as fp:
+        acmejson = json.load(fp)
+    acmecerts = acmejson['acmeServer']["Certificates"] or []
+    removed_names = set()
+    preserved_certificates = []
+    for ocert in acmecerts:
+        bcert = base64.b64decode(ocert["certificate"])
+        dcert = extract_certificate_attributes(bcert)
+        certificate_names = set(dcert['names'])
+        if purge_serial:
+            if dcert['serial'] == purge_serial:
+                removed_names.update(certificate_names)
+            else:
+                preserved_certificates.append(ocert)
+        elif purge_names:
+            if purge_names == certificate_names:
+                removed_names.update(certificate_names)
+            else:
+                preserved_certificates.append(ocert)
+        else:
+            return set() # nothing to do
+    if not removed_names:
+        return set() # nothing has been purged
+    #
+    # Write the new acme.json file and restart Traefik
+    #
+    acmejson['acmeServer']["Certificates"][:] = preserved_certificates
+    tmpmask = os.umask(0o177) # Restrict new file permissions to 0600
+    with open('acme/acme.json.tmp', 'w') as tmpfp:
+        json.dump(acmejson, fp=tmpfp)
+    os.rename('acme/acme.json.tmp', 'acme/acme.json')
+    os.umask(tmpmask) # Restore previous mask
+    agent.run_helper("systemctl", "--user", "restart", "traefik")
+    return removed_names
 
+def clear_certresolver_in_http_routes(for_names: set):
+    """Scan HTTP routes configuration files and disable ACME certResolver
+    if its Host rules match the given for_names set."""
+    route_names = set()
+    host_pattern = re.compile(r'Host\(`(.*?)`\)')
+    for cfgpath in glob.glob("configs/*.yml"):
+        if cfgpath.startswith("configs/_"):
+            continue # skip builtin files
+        ocfg = parse_yaml_config(cfgpath)
+        ocfg_changed = False
+        for krouter in ocfg.get('http', {}).get('routers', {}):
+            orouter = ocfg['http']['routers'][krouter]
+            rule_hosts = re.findall(host_pattern, orouter.get('rule', ""))
+            try:
+                if orouter['tls']['certResolver'] == 'acmeServer' and for_names.intersection(set(rule_hosts)):
+                    del orouter['tls']['certResolver']
+                    ocfg_changed = True
+            except KeyError:
+                pass
+        if ocfg_changed:
+            print('Clear ACME certResolver in', cfgpath, file=sys.stderr)
+            write_yaml_config(ocfg, cfgpath)
 
 def extract_certificate_attributes(cert_data : bytearray) -> dict:
     """

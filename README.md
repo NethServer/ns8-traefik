@@ -280,24 +280,24 @@ Output:
 This action deletes a TLS certificate from Traefik's configuration. Its
 parameters are:
 
-- `fqdn` (string): the name of the TLS certificate
 - `type` (one of `internal` or `custom`): use `internal` for Let's Encrypt
   certificates, `custom` for uploaded certificates.
+- `serial` (string): the serial number of an intenal certificate
+- `path` (string): the file path of a custom certificate
 
 The effects depend on the certificate type:
 
 - `internal` If the certificate was obtained from Let's Encrypt using the
-  ACME protocol, the `fqdn` is removed from Traefik's
-  `defaultGeneratedCert` configuration. The certificate will **not**
-  actually be removed from Traefik's `acme.json` certificate storage. Even
-  if unused, it will be renewed as long as the conditions permit.
-- `custom` If the certificate was uploaded, it is erased from disk along
-  with its private key and removed from Traefik's TLS configuration.
+  ACME protocol, the `serial` is removed from Traefik's `acme.json` file
+  and Traefik is immediately restarted.
+- `custom` If the certificate was uploaded, the matching `path` is erased
+  from disk along with its relative private key and Traefik's
+  configuration.
 
 Example:
 
 ```
-api-cli run module/traefik1/delete-certificate --data '{"fqdn":"myhost.example.com","type":"internal"}'
+api-cli run module/traefik1/delete-certificate --data '{"serial":"3836656052452775035741651062981017961514023","type":"internal"}'
 ```
 
 ## list-certificates-v2
