@@ -237,6 +237,78 @@ Output:
 ]
 ```
 
+## set-default-certificate
+
+Use this action to obtain and enable a new default certificate in Traefik.
+The certificate will cover the requested domain names and can optionally
+merge with the existing default certificate names. The action validates
+requested names against existing HTTP routes to avoid conflicts.
+
+### Input
+
+* `names` (array of strings, required): List of domain names to include in
+  the default certificate.
+
+  * Can include FQDNs (e.g., `www.nethserver.org`) or wildcard domains (e.g., `*.nethserver.com`).
+  * Must contain at least one name.
+
+* `check_routes` (boolean, optional, default: true): If true, the action
+  will verify that the requested names are not already used by existing
+  HTTP routes.
+
+* `sync_timeout` (integer, optional, default: 30): Maximum number of
+  seconds to wait for the ACME certificate response.
+
+* `merge` (boolean, optional, default: false): If true, the resulting
+  certificate names will be the union of the current default certificate
+  names with the requested names.
+
+### Examples
+
+Set a new default certificate for specific names:
+
+```json
+{
+    "names": [
+        "www.nethserver.org",
+        "*.nethserver.com"
+    ]
+}
+```
+
+Merge new names with the existing default certificate:
+
+```json
+{
+    "names": [
+        "api.nethserver.org"
+    ],
+    "merge": true
+}
+```
+
+Set a new default certificate and wait up to 60 seconds for the ACME certificate:
+
+```json
+{
+    "names": [
+        "secure.nethserver.org"
+    ],
+    "sync_timeout": 60
+}
+```
+
+### Notes
+
+* Changing the default certificate does not trigger a Traefik restart.
+* Ensure that domain names provided are valid and properly resolvable for
+  ACME validation.
+* During the validation period Traefik may temporarily present a self-signed
+  certificate on HTTP routes that are not based on the Host name.
+* If the certificate cannot be obtained, Traefik will keep the previous
+  default certificate and a validation error is returned. Full ACME
+  protocol error is in the `details` attribute.
+
 
 ## set-certificate
 

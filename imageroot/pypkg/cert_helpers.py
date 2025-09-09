@@ -172,6 +172,23 @@ def wait_acmejson_sync(timeout=120, interval=2.1, names=[]):
         logcli_proc.terminate()
     return obtained
 
+def set_default_certificate(names: list):
+    """Overwrite default certificate configuration to use an internal (acme.json) certificate
+    with main name and sans."""
+    tlsconf = parse_yaml_config("configs/_default_cert.yml")
+    defstore = tlsconf['tls']['stores']['default']
+    if 'defaultCertificate' in defstore:
+        # Remove self-signed cert config.
+        del defstore['defaultCertificate']
+    defstore['defaultGeneratedCert'] = {
+        'resolver': 'acmeServer',
+        'domain': {
+            'main': names[0],
+            'sans': names[1:],
+        },
+    }
+    write_yaml_config(tlsconf, 'configs/_default_cert.yml')
+
 def add_default_certificate_name(main, sans=[]):
     """Add 'main' and 'sans' to the current certificate configuration. If
     the current certificate is already configured, 'main' is added as SAN,
@@ -400,7 +417,7 @@ def list_internal_certificates(acmejson_path: str='acme/acme.json', with_details
             acmejson = json.load(fp)
         acmecerts = acmejson['acmeServer']["Certificates"] or []
     except (FileNotFoundError, KeyError, json.JSONDecodeError) as ex:
-        print(agent.SD_WARNING + "Failed to parse acme.json:", ex, file=sys.stderr)
+        print(agent.SD_WARNING + f"Failed to parse JSON file {acmejson_path}:", ex, file=sys.stderr)
         return []
     certificates = []
     for ocert in acmecerts:
@@ -425,3 +442,31 @@ def list_custom_certificates():
         except Exception as ex:
             print(agent.SD_WARNING + "Failed to parse certificate", cert_path, ":", ex, file=sys.stderr)
     return certificates
+
+def request_new_default_certificate(new_cert_names:list, merge_names:bool=False, sync_timeout:int=30) -> (bool, str):
+    """Request an ACME certificate with new_cert_names, and set is as
+    Traefik's default certificate."""
+    cur_cert_names = read_default_cert_names()
+    if merge_names == True:
+        new_cert_names = cur_cert_names + new_cert_names
+    # Before issuing a new ACME request, check if we have the certificate
+    # in the internal storage:
+    if has_acmejson_cert(set(new_cert_names)):
+        if set(new_cert_names) == set(cur_cert_names):
+            return (True, "") # The wanted certificate was already obtained and configured. Nothing to do.
+        else:
+            # the wanted certificate was already obtained. Configure it as default.
+            set_default_certificate(new_cert_names)
+    # To force a new ACME request we overwrite _default.yml.
+    tstart = datetime.datetime.now(datetime.UTC)
+    set_default_certificate(new_cert_names)
+    obtained = wait_acmejson_sync(names=new_cert_names, timeout=sync_timeout, interval=1.1)
+    acme_error = ""
+    if not obtained:
+        # Rollback configuration:
+        if cur_cert_names:
+            set_default_certificate(cur_cert_names)
+        else:
+            reset_selfsigned_certificate()
+        acme_error = traefik_last_acme_error_since(tstart)
+    return (obtained, acme_error)
