@@ -129,6 +129,11 @@
             "title": "Let's Encrypt certificate",
             "description": "Request a valid Let's Encrypt certificate."
         },
+        "lets_encrypt_check": {
+            "type": "boolean",
+            "description": "When set true, return a validation error if a Let's Encrypt certificate is not immediately obtained",
+            "default": false
+        },
         "http2https": {
             "type": "boolean",
             "title": "HTTP to HTTPS redirection",

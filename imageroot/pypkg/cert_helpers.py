@@ -470,3 +470,16 @@ def request_new_default_certificate(new_cert_names:list, merge_names:bool=False,
             reset_selfsigned_certificate()
         acme_error = traefik_last_acme_error_since(tstart)
     return (obtained, acme_error)
+
+def request_new_certificate(new_cert_names:list, sync_timeout:int=30) -> (bool, str):
+    """Request an ACME certificate with new_cert_names, by configuring a temporary Traefik router."""
+    # Before issuing a new ACME request, check if we have the certificate
+    # in the internal storage:
+    if has_acmejson_cert(set(new_cert_names)):
+        return (True, "")
+    tstart = datetime.datetime.now(datetime.UTC)
+    obtained = validate_certificate_names(main=new_cert_names[0], sans=new_cert_names[1:], timeout=sync_timeout)
+    acme_error = ""
+    if not obtained:
+        acme_error = traefik_last_acme_error_since(tstart)
+    return (obtained, acme_error)
