@@ -66,6 +66,15 @@ This is the priority of the rules type evaluation (top-down):
         "skip_tls_verify": true
       }
 ```
+- `lets_encrypt_cleanup` (optional): when the HTTP route Let'Encrypt certificate is no longer
+  needed (i.e. `lets_encrypt` is set to `false`), this optional boolean attribute
+  can trigger the cleanup of the internal certificate store (`acme.json`
+  file) with immediate Traefik restart.
+
+- `lets_encrypt_check` (optional): if this optional attribute is `true`, the action
+  fails immediately with a validation error if a Let's Encrypt certificate
+  cannot be obtained. The full ACME error message is returned in the
+  `details` attribute.
 
 ### Examples
 
@@ -171,8 +180,12 @@ Output:
 ## delete-route
 
 This action delets an existing route. It can be used when removing a module instance.
-The action takes 1 parameter:
+The action takes the following parameters:
 - `instance`: the instance name
+- `lets_encrypt_cleanup` (optional): if a Let's Encrypt certificate was
+  obtained trigger the cleanup of the internal certificate store
+  (`acme.json` file) with immediate Traefik restart.
+
 
 Example:
 ```

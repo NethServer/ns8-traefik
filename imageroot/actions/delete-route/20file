@@ -7,11 +7,19 @@
 
 import json
 import sys
+import cert_helpers
 from pathlib import Path
+from get_route import get_route
 
 # Try to parse the stdin as JSON.
 # If parsing fails, output everything to stderr
 data = json.load(sys.stdin)
+
+if data.get("lets_encrypt_cleanup"):
+    oroute = get_route({"instance": data["instance"]})
+    route_host = oroute.get("host")
+else:
+    route_host = None
 
 # Remove route configuration
 p = Path(f'configs/{data["instance"]}.yml')
@@ -20,3 +28,7 @@ p.unlink(missing_ok=True)
 # Remove manual flag
 pf = Path(f'manual_flags/{data["instance"]}')
 pf.unlink(missing_ok=True)
+
+# Purge certificate, if it matches the route Host
+if route_host:
+    cert_helpers.purge_acme_json_and_restart_traefik(purge_names={route_host})

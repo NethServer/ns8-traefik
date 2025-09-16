@@ -134,6 +134,11 @@
             "description": "When set true, return a validation error if a Let's Encrypt certificate is not immediately obtained",
             "default": false
         },
+        "lets_encrypt_cleanup": {
+            "type": "boolean",
+            "description": "If true and lets_encrypt attribute is false, the Let's Encrypt certificate is removed and Traefik is restarted if needed.",
+            "default": false
+        },
         "http2https": {
             "type": "boolean",
             "title": "HTTP to HTTPS redirection",
