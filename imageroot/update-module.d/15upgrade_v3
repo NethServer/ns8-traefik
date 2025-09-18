@@ -22,6 +22,15 @@ def main():
     agent.run_helper("mkdir", "-vp", "manual_flags")
     static_cfg = yaml.safe_load(open("traefik.yaml"))
     upgrade_to_v3(static_cfg)
+    add_metrics(static_cfg) # 3.5+
+
+def add_metrics(static_cfg):
+    if 'metrics' in static_cfg.get('entryPoints', {}):
+        return # nothing to do
+    print("Add Traefik metrics endpoint configuration for version 3.5+")
+    static_cfg['entryPoints']['metrics'] = {"address": ":8082"}
+    static_cfg['metrics'] = {"prometheus": {"entryPoint": "metrics"}}
+    write_static_cfg(static_cfg)
 
 def upgrade_to_v3(static_cfg):
     if not 'core' in static_cfg:

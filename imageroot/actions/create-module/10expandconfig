@@ -28,6 +28,12 @@ entryPoints:
    address: ":80"
   https:
    address: ":443"
+  metrics:
+   address: ":8082"
+
+metrics:
+  prometheus:
+    entryPoint: metrics
 
 providers:
   file:
