@@ -177,9 +177,14 @@ if middlewares:
 with open(f'configs/{data["instance"]}.yml', 'w') as fp:
     fp.write(yaml.safe_dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True))
 
+changed_names = set()
 # If cleanup is requested, remove the original Host from acme.json:
 if (request.get("lets_encrypt_cleanup") and
     original_data.get("host") and
     data.get("lets_encrypt") == False):
     # Traefik restarts only when the original Host exists in acme.json:
-    cert_helpers.purge_acme_json_and_restart_traefik(purge_names={original_data["host"]})
+    changed_names = cert_helpers.purge_acme_json_and_restart_traefik(purge_names={original_data["host"]})
+
+if not changed_names:
+    # Traefik was not restarted: notify hosts-changed event here:
+    cert_helpers.update_redis_hosts_key_and_notify_event()

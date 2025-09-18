@@ -1,55 +1,10 @@
 #!/usr/bin/env python3
 
 #
-# Copyright (C) 2024 Nethesis S.r.l.
+# Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-"""
-This script syncs the hosts from traefik to redis.
-Allows to notify modules of the change.
-"""
+import cert_helpers
 
-import sys
-import json
-import os
-import re
-
-from urllib3.util import Retry
-from requests import Session
-from requests.adapters import HTTPAdapter
-from requests.exceptions import RequestException
-
-import agent
-
-# Fetch router list from traefik
-api_path = os.environ["API_PATH"]
-session = Session()
-retries = Retry(
-    total=8, backoff_factor=0.5, # Sum of retry periods should be 63.5 seconds
-    status_forcelist=set(range(404,512)), # retry on error states during Traefik startup
-)
-
-try:
-    session.mount('http://', HTTPAdapter(max_retries=retries))
-    response = session.get(f'http://127.0.0.1/{api_path}/api/http/routers').json()
-    session.close()
-except Exception as ex:
-    print(agent.SD_ERR, ex, file=sys.stderr)
-    sys.exit(1)
-
-# Connect to redis using module credentials
-agent_id = os.getenv("AGENT_ID")
-redis_client = agent.redis_connect(privileged=True)
-# Write pipeline to redis
-redis_pipeline = redis_client.pipeline()
-redis_pipeline.delete(f'{agent_id}/hosts')
-for route in response:
-    if 'rule' in route and 'Host' in route['rule']:
-        # Extract the hosts from the rule
-        rule_hosts = re.findall(r'Host\(`(.*?)`\)', route['rule'])
-        for host in rule_hosts:
-            redis_pipeline.sadd(f'{agent_id}/hosts', host)
-
-redis_pipeline.publish(f'{agent_id}/event/hosts-changed', json.dumps({'node_id': os.environ['NODE_ID']}))
-redis_pipeline.execute()
+cert_helpers.update_redis_hosts_key_and_notify_event()
