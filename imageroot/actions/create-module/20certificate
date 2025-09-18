@@ -23,4 +23,4 @@ if [ -e $NAME.crt ] && [ -e $NAME.key ]; then
     exit 0
 fi
 
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout selfsigned.key -out selfsigned.crt -subj "/CN=$FQDN"  -addext "subjectAltName=DNS:$FQDN"
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout selfsigned.key -out selfsigned.crt -subj "/CN=$FQDN"  -addext "subjectAltName=DNS:localhost,DNS:$FQDN"
