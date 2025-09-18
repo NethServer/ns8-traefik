@@ -6,8 +6,7 @@
 #
 
 #
-# Generate a self-signed certificate that includes the current machine FQDN
-# and all machine IPs
+# Generate a self-signed certificate for a random FQDN
 #
 
 set -e
@@ -24,9 +23,4 @@ if [ -e $NAME.crt ] && [ -e $NAME.key ]; then
     exit 0
 fi
 
-for ip in $(ip -json addr show | jq -r '.[].addr_info | .[].local')
-do
-    addresses="$addresses,IP:$ip"
-done
-
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout selfsigned.key -out selfsigned.crt -subj "/CN=$FQDN"  -addext "subjectAltName=DNS:localhost,DNS:$FQDN$addresses"
+openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout selfsigned.key -out selfsigned.crt -subj "/CN=$FQDN"  -addext "subjectAltName=DNS:localhost,DNS:$FQDN"
