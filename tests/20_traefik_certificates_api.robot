@@ -27,20 +27,16 @@ Get invalid certificate status
     Should Be Equal As Strings    ${response['type']}    selfsigned
 
 Get certificate list
-    ${response} =  Run task    module/${MID}/list-certificates    null    decode_json=${False}
-    Should Be Equal As Strings    ${response}    []
+    ${response} =  Run task    module/${MID}/list-certificates    ""
+    Should Be Empty    ${response['certificates']}
 
-Get expanded certificate list
-    ${response} =  Run task    module/${MID}/list-certificates    {"expand_list": true}    decode_json=${False}
-    Should Be Equal As Strings    ${response}    []
-
-Delete certificate
+Delete invalid certificate
     ${response} =  Run task    module/${MID}/delete-certificate
-    ...    {"fqdn": "example.com","type":"internal"}    decode_json=${False}    rc_expected=2
+    ...    {"serial": "UNKNOWN-EXAMPLE.COM","type":"internal"}    decode_json=${False}    rc_expected=2
 
 Get empty certificates list
-    ${response} =  Run task    module/${MID}/list-certificates    null
-    Should Be Empty    ${response}
+    ${response} =  Run task    module/${MID}/list-certificates    ""
+    Should Be Empty    ${response['certificates']}
 
 Reject a certificate with missing or empty CN field
     ${plain_key} =    Execute Command    openssl genrsa 4096
@@ -86,6 +82,6 @@ Upload a custom certificate
     Execute Command    runagent -m ${MID} python3 -c 'import agent ; agent.set_env("UPLOAD_CERTIFICATE_VERIFY_TYPE", "chain")'
 
 Delete custom certificate
-    Run task    module/${MID}/delete-certificate   	 {"fqdn": "test.example.com","type":"custom"}
+    Run task    module/${MID}/delete-certificate   	 {"path": "custom_certificates/test.example.com.crt","type":"custom"}
     ${response} =    Execute Command    redis-cli --raw EXISTS module/${MID}/certificate/test.example.com
     Should Be Equal As Integers    ${response}    0

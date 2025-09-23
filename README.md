@@ -66,6 +66,15 @@ This is the priority of the rules type evaluation (top-down):
         "skip_tls_verify": true
       }
 ```
+- `lets_encrypt_cleanup` (optional): when the HTTP route Let'Encrypt certificate is no longer
+  needed (i.e. `lets_encrypt` is set to `false`), this optional boolean attribute
+  can trigger the cleanup of the internal certificate store (`acme.json`
+  file) with immediate Traefik restart.
+
+- `lets_encrypt_check` (optional): if this optional attribute is `true`, the action
+  fails immediately with a validation error if a Let's Encrypt certificate
+  cannot be obtained. The full ACME error message is returned in the
+  `details` attribute.
 
 ### Examples
 
@@ -171,8 +180,12 @@ Output:
 ## delete-route
 
 This action delets an existing route. It can be used when removing a module instance.
-The action takes 1 parameter:
+The action takes the following parameters:
 - `instance`: the instance name
+- `lets_encrypt_cleanup` (optional): if a Let's Encrypt certificate was
+  obtained trigger the cleanup of the internal certificate store
+  (`acme.json` file) with immediate Traefik restart.
+
 
 Example:
 ```
@@ -237,6 +250,78 @@ Output:
 ]
 ```
 
+## set-default-certificate
+
+Use this action to obtain and enable a new default certificate in Traefik.
+The certificate will cover the requested domain names and can optionally
+merge with the existing default certificate names. The action validates
+requested names against existing HTTP routes to avoid conflicts.
+
+### Input
+
+* `names` (array of strings, required): List of domain names to include in
+  the default certificate.
+
+  * Can include FQDNs (e.g., `www.nethserver.org`) or wildcard domains (e.g., `*.nethserver.com`).
+  * Must contain at least one name.
+
+* `check_routes` (boolean, optional, default: true): If true, the action
+  will verify that the requested names are not already used by existing
+  HTTP routes.
+
+* `sync_timeout` (integer, optional, default: 30): Maximum number of
+  seconds to wait for the ACME certificate response.
+
+* `merge` (boolean, optional, default: false): If true, the resulting
+  certificate names will be the union of the current default certificate
+  names with the requested names.
+
+### Examples
+
+Set a new default certificate for specific names:
+
+```json
+{
+    "names": [
+        "www.nethserver.org",
+        "*.nethserver.com"
+    ]
+}
+```
+
+Merge new names with the existing default certificate:
+
+```json
+{
+    "names": [
+        "api.nethserver.org"
+    ],
+    "merge": true
+}
+```
+
+Set a new default certificate and wait up to 60 seconds for the ACME certificate:
+
+```json
+{
+    "names": [
+        "secure.nethserver.org"
+    ],
+    "sync_timeout": 60
+}
+```
+
+### Notes
+
+* Changing the default certificate does not trigger a Traefik restart.
+* Ensure that domain names provided are valid and properly resolvable for
+  ACME validation.
+* During the validation period Traefik may temporarily present a self-signed
+  certificate on HTTP routes that are not based on the Host name.
+* If the certificate cannot be obtained, Traefik will keep the previous
+  default certificate and a validation error is returned. Full ACME
+  protocol error is in the `details` attribute.
+
 
 ## set-certificate
 
@@ -280,52 +365,81 @@ Output:
 This action deletes a TLS certificate from Traefik's configuration. Its
 parameters are:
 
-- `fqdn` (string): the name of the TLS certificate
 - `type` (one of `internal` or `custom`): use `internal` for Let's Encrypt
   certificates, `custom` for uploaded certificates.
+- `serial` (string): the serial number of an intenal certificate
+- `path` (string): the file path of a custom certificate
 
 The effects depend on the certificate type:
 
 - `internal` If the certificate was obtained from Let's Encrypt using the
-  ACME protocol, the `fqdn` is removed from Traefik's
-  `defaultGeneratedCert` configuration. The certificate will **not**
-  actually be removed from Traefik's `acme.json` certificate storage. Even
-  if unused, it will be renewed as long as the conditions permit.
-- `custom` If the certificate was uploaded, it is erased from disk along
-  with its private key and removed from Traefik's TLS configuration.
+  ACME protocol, the `serial` is removed from Traefik's `acme.json` file
+  and Traefik is immediately restarted.
+- `custom` If the certificate was uploaded, the matching `path` is erased
+  from disk along with its relative private key and Traefik's
+  configuration.
 
 Example:
 
 ```
-api-cli run module/traefik1/delete-certificate --data '{"fqdn":"myhost.example.com","type":"internal"}'
+api-cli run module/traefik1/delete-certificate --data '{"serial":"3836656052452775035741651062981017961514023","type":"internal"}'
 ```
 
 ## list-certificates
 
-This action returns a list of requested certificate, the list is an JSON array, and if no certificate was requested, an
-empty array is returned.
-
-The action takes 1 optional parameter:
-- `expand_list`: if set to `true` the list will be expanded with all certificate's details
+This action returns the detailed attributes of TLS certificates known to
+Traefik. Refer to the action `validate-output.json` schema for the
+attribute descriptions.
 
 Example:
 ```
 api-cli run module/traefik1/list-certificates
 ```
 
-Output (brief format):
+Output:
 ```json
-["myhost.example.com"]
-```
-
-Example list expanded:
-```
-api-cli run module/traefik1/list-certificates --data '{"expand_list": true}'
-```
-
-Output (expanded format):
-```json
-[{"fqdn": "myhost.example.com", "obtained": true, "type": "internal"}]
+{
+  "certificates": [
+    {
+      "names": [
+        "dokuwiki1.dp.nethserver.net"
+      ],
+      "subject": "dokuwiki1.dp.nethserver.net",
+      "issuer": "CN=(STAGING) Tenuous Tomato R13,O=(STAGING) Let's Encrypt,C=US",
+      "serial": "3856185763134404048717648492547484375729159",
+      "valid_to": "2025-12-03T06:42:34+00:00",
+      "valid_from": "2025-09-04T06:42:35+00:00",
+      "validity": "valid",
+      "type": "internal",
+      "automatic": true
+    },
+    {
+      "names": [
+        "piler1.dp.nethserver.net"
+      ],
+      "subject": "piler1.dp.nethserver.net",
+      "issuer": "CN=(STAGING) Riddling Rhubarb R12,O=(STAGING) Let's Encrypt,C=US",
+      "serial": "3875501012854752351612754224168371968359414",
+      "valid_to": "2025-12-03T06:42:46+00:00",
+      "valid_from": "2025-09-04T06:42:47+00:00",
+      "validity": "valid",
+      "type": "internal"
+    },
+    {
+      "names": [
+        "mail.dp.nethserver.net"
+      ],
+      "subject": "mail.dp.nethserver.net",
+      "issuer": "CN=Custom Intermediate CA,O=TestIntermediateCA,L=TestCity,ST=TestState,C=XX",
+      "serial": "603545327999770137768033575467090432240151056165",
+      "valid_to": "2026-02-07T14:19:38+00:00",
+      "valid_from": "2025-02-07T14:19:38+00:00",
+      "path": "custom_certificates/mail.dp.nethserver.net.crt",
+      "validity": "valid",
+      "type": "custom"
+    }
+  ]
+}
 ```
 
 ## set-acme-server

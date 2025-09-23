@@ -13,13 +13,11 @@ import agent
 import datetime
 
 def main():
-    tstart = datetime.datetime.now(datetime.UTC)
     request = json.load(sys.stdin)
-    if cert_helpers.validate_certificate_names(request['fqdn'], timeout=request.get('sync_timeout', 30)):
-        cert_helpers.add_default_certificate_name(request['fqdn'])
+    obtained, acme_error = cert_helpers.request_new_default_certificate(new_cert_names=[request['fqdn']], merge_names=True, sync_timeout=request.get('sync_timeout', 30))
+    if obtained:
         json.dump({"obtained": True}, fp=sys.stdout)
     else:
-        acme_error = cert_helpers.traefik_last_acme_error_since(tstart)
         for errline in acme_error.split('\n'):
             print(agent.SD_ERR + errline, file=sys.stderr)
         # NOTE: this action does not return the usual validation-failed format

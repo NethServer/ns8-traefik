@@ -17,12 +17,14 @@ import os
 import yaml
 import copy
 import agent
+import cert_helpers
 from get_route import get_route
 
 # Try to parse the stdin as JSON.
 # If parsing fails, output everything to stderr
 request = json.load(sys.stdin)
 data = get_route({"instance": request["instance"]})
+original_data = data.copy()
 data.update(request)
 
 agent_id = os.getenv("AGENT_ID", "")
@@ -174,3 +176,10 @@ if middlewares:
 
 with open(f'configs/{data["instance"]}.yml', 'w') as fp:
     fp.write(yaml.safe_dump(config, default_flow_style=False, sort_keys=False, allow_unicode=True))
+
+# If cleanup is requested, remove the original Host from acme.json:
+if (request.get("lets_encrypt_cleanup") and
+    original_data.get("host") and
+    data.get("lets_encrypt") == False):
+    # Traefik restarts only when the original Host exists in acme.json:
+    cert_helpers.purge_acme_json_and_restart_traefik(purge_names={original_data["host"]})
