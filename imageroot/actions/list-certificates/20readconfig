@@ -1,44 +1,9 @@
-#!/usr/bin/env python3
+#!/bin/bash
 
 #
 # Copyright (C) 2025 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-import json
-import os
-import agent
-import sys
-import cert_helpers
-
-def main():
-    request = json.load(sys.stdin)
-    # Choose the action output format brief/detailed:
-    if request is None or request["expand_list"] is False:
-        response = list_certificates_brief()
-    else:
-        response = list_certificates_detailed()
-    json.dump(response, fp=sys.stdout)
-
-def list_certificates_brief():
-    return cert_helpers.read_default_cert_names() + cert_helpers.read_custom_cert_names()
-
-def list_certificates_detailed():
-    response = []
-    for acmename in cert_helpers.read_default_cert_names():
-        response.append({
-            "fqdn": acmename,
-            "type": "internal",
-            "obtained": cert_helpers.has_acmejson_name(acmename),
-        })
-    for certsubject in cert_helpers.read_custom_cert_names():
-        response.append({
-            "fqdn": certsubject,
-            "type": "custom",
-            "obtained": True,
-        })
-    response.sort(key=lambda item: (item["type"], item["fqdn"]))
-    return response
-
-if __name__ == "__main__":
-    main()
+# Placeholder, see bug NethServer/dev#7058
+exit 0

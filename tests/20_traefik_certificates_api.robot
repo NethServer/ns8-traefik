@@ -27,20 +27,16 @@ Get invalid certificate status
     Should Be Equal As Strings    ${response['type']}    selfsigned
 
 Get certificate list
-    ${response} =  Run task    module/${MID}/list-certificates    null    decode_json=${False}
-    Should Be Equal As Strings    ${response}    []
-
-Get expanded certificate list
-    ${response} =  Run task    module/${MID}/list-certificates    {"expand_list": true}    decode_json=${False}
-    Should Be Equal As Strings    ${response}    []
+    ${response} =  Run task    module/${MID}/list-certificates    ""
+    Should Be Empty    ${response['certificates']}
 
 Delete invalid certificate
     ${response} =  Run task    module/${MID}/delete-certificate
     ...    {"serial": "UNKNOWN-EXAMPLE.COM","type":"internal"}    decode_json=${False}    rc_expected=2
 
 Get empty certificates list
-    ${response} =  Run task    module/${MID}/list-certificates    null
-    Should Be Empty    ${response}
+    ${response} =  Run task    module/${MID}/list-certificates    ""
+    Should Be Empty    ${response['certificates']}
 
 Reject a certificate with missing or empty CN field
     ${plain_key} =    Execute Command    openssl genrsa 4096

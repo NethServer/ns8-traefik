@@ -385,7 +385,7 @@ Example:
 api-cli run module/traefik1/delete-certificate --data '{"serial":"3836656052452775035741651062981017961514023","type":"internal"}'
 ```
 
-## list-certificates-v2
+## list-certificates
 
 This action returns the detailed attributes of TLS certificates known to
 Traefik. Refer to the action `validate-output.json` schema for the
@@ -393,7 +393,7 @@ attribute descriptions.
 
 Example:
 ```
-api-cli run module/traefik1/list-certificates-v2
+api-cli run module/traefik1/list-certificates
 ```
 
 Output:
