@@ -462,7 +462,10 @@ def request_new_default_certificate(new_cert_names:list, merge_names:bool=False,
     set_default_certificate(new_cert_names)
     obtained = wait_acmejson_sync(names=new_cert_names, timeout=sync_timeout, interval=1.1)
     acme_error = ""
-    if not obtained:
+    if obtained:
+        # Notify hosts-changed event
+        update_redis_hosts_key_and_notify_event()
+    else:
         # Rollback configuration:
         if cur_cert_names:
             set_default_certificate(cur_cert_names)
@@ -483,3 +486,28 @@ def request_new_certificate(new_cert_names:list, sync_timeout:int=30) -> (bool, 
     if not obtained:
         acme_error = traefik_last_acme_error_since(tstart)
     return (obtained, acme_error)
+
+def update_redis_hosts_key_and_notify_event():
+    """Extract host names from HTTP routes and the default certificate and
+    notify hosts-changed event with collected names."""
+    route_names = set()
+    host_pattern = re.compile(r'Host\(`(.*?)`\)')
+    for cfgpath in glob.glob("configs/*.yml"):
+        if cfgpath.startswith("configs/_"):
+            continue # skip builtin files
+        ocfg = parse_yaml_config(cfgpath)
+        for orouter in ocfg.get('http', {}).get('routers', {}).values():
+            rule_hosts = re.findall(host_pattern, orouter['rule'])
+            route_names.update(rule_hosts)
+    route_names.update(set(read_default_cert_names()))
+    agent_id = os.environ["AGENT_ID"]
+    wrdb = agent.redis_connect(privileged=True)
+    current_hosts = wrdb.smembers(f'{agent_id}/hosts')
+    if current_hosts != route_names:
+        # Write pipeline to redis
+        trx = wrdb.pipeline()
+        trx.delete(f'{agent_id}/hosts')
+        if route_names:
+            trx.sadd(f'{agent_id}/hosts', *list(route_names))
+        trx.publish(f'{agent_id}/event/hosts-changed', json.dumps({'node_id': os.environ['NODE_ID']}))
+        trx.execute()
