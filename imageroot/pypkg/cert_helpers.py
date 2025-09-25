@@ -305,7 +305,7 @@ def validate_certificate_names(main, sans=[], timeout=30):
     os.unlink("configs/_validation000.yml")
     return obtained
 
-def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={}) -> set:
+def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={}, purge_obsolete: bool=False) -> set:
     """Lookup and delete acme.json certificates matching purge_serial or
     purge_names. Use at most one argument."""
     with open('acme/acme.json', 'r') as fp:
@@ -313,6 +313,8 @@ def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={
     acmecerts = acmejson['acmeServer']["Certificates"] or []
     removed_names = set()
     preserved_certificates = []
+    names_of_http_routes = read_names_of_automatic_http_routes()
+    default_cert_names = set(read_default_cert_names())
     for ocert in acmecerts:
         bcert = base64.b64decode(ocert["certificate"])
         dcert = extract_certificate_attributes(bcert)
@@ -324,6 +326,13 @@ def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={
                 preserved_certificates.append(ocert)
         elif purge_names:
             if purge_names == certificate_names:
+                removed_names.update(certificate_names)
+            else:
+                preserved_certificates.append(ocert)
+        elif purge_obsolete:
+            if (certificate_names != default_cert_names
+                and not certificate_names.issubset(names_of_http_routes)):
+                # Obsolete certificate found
                 removed_names.update(certificate_names)
             else:
                 preserved_certificates.append(ocert)
