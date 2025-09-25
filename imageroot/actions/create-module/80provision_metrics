@@ -21,7 +21,7 @@ def main():
         "targets": [f"{ip_address}:8082"],
         "labels": {
             "module_id": module_id,
-            "node_id": node_id,
+            "node": node_id, # no "_id" suffix for Metrics
         },
     }]
     update_metrics(targets)
