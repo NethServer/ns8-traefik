@@ -19,6 +19,9 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 import signal
 import atexit
+import fcntl
+
+_lock_default_certificate_done = False
 
 def extract_certified_names(cert_data : bytearray) -> set:
     """
@@ -466,9 +469,25 @@ def list_custom_certificates():
             print(agent.SD_WARNING + "Failed to parse certificate", cert_path, ":", ex, file=sys.stderr)
     return certificates
 
+def _lock_default_certificate():
+    """
+    Acquire an exclusive blocking lock for the default certificate configuration.
+    The lock is released when the calling process terminates.
+    Equivalent to: flock -x <file>
+    """
+    global _lock_default_certificate_done
+    if not _lock_default_certificate_done:
+        _lock_default_certificate_done = True
+    else:
+        print(agent.SD_WARNING + "NOOP: the default-certificate lock was already requested by current process.", file=sys.stderr)
+        return
+    fd = os.open(".default-certificate.lock", os.O_RDWR | os.O_CREAT, 0o644)
+    fcntl.flock(fd, fcntl.LOCK_EX)  # blocking exclusive lock
+
 def request_new_default_certificate(new_cert_names:list, merge_names:bool=False, sync_timeout:int=30) -> (bool, str):
     """Request an ACME certificate with new_cert_names, and set is as
     Traefik's default certificate."""
+    _lock_default_certificate()
     cur_cert_names = read_default_cert_names()
     if merge_names == True:
         new_cert_names = cur_cert_names + new_cert_names
