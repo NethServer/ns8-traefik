@@ -16,12 +16,12 @@ node_id = int(os.environ['NODE_ID'])
 def main():
     global module_id, node_id
     rdb_ro = agent.redis_connect()
-    ip_address = rdb_ro.hget(f'node/{node_id}/vpn', 'ip_address')
+    ip_address = rdb_ro.hget(f'node/{node_id}/vpn', 'ip_address') or '127.0.0.1'
     targets = [{
         "targets": [f"{ip_address}:8082"],
         "labels": {
             "module_id": module_id,
-            "node_id": node_id,
+            "node": node_id, # no "_id" suffix for Metrics
         },
     }]
     update_metrics(targets)
