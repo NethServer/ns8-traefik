@@ -17,6 +17,8 @@ import re
 import base64
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+import signal
+import atexit
 
 def extract_certified_names(cert_data : bytearray) -> set:
     """
@@ -277,20 +279,21 @@ def validate_certificate_names(main, sans=[], timeout=30):
     # Check if we already have the same certificate in acme.json:
     if has_acmejson_cert(set([main] + sans)):
         return True
+    uniqconf = f"_validation{os.getpid()}"
     routerconf = {
         "http": {
             "services": {
-                "_validation000": {
+                uniqconf: {
                     "loadBalancer": {
                         "servers": ["ping@internal"]
                     }
                 }
             },
             "routers": {
-                "_validation000": {
-                    "rule": f"Host(`{main}`) && Path(`/_validation000`)",
+                uniqconf: {
+                    "rule": f"Host(`{main}`) && Path(`/{uniqconf}`)",
                     "priority": 100001,
-                    "service": "_validation000",
+                    "service": uniqconf,
                     "entryPoints": ["https"],
                     "tls": {
                         "domains": [{"main": main, "sans": sans}],
@@ -300,10 +303,21 @@ def validate_certificate_names(main, sans=[], timeout=30):
             }
         }
     }
-    write_yaml_config(routerconf, "configs/_validation000.yml")
+    _register_tempfile_cleanup(f"configs/{uniqconf}.yml")
+    write_yaml_config(routerconf, f"configs/{uniqconf}.yml")
     obtained = wait_acmejson_sync(timeout=timeout, interval=1.1, names=[main] + sans)
-    os.unlink("configs/_validation000.yml")
+    os.unlink(f"configs/{uniqconf}.yml")
     return obtained
+
+def _register_tempfile_cleanup(tpath: str):
+    def _fcleanup(*_):
+        try:
+            os.unlink(tpath)
+        except FileNotFoundError:
+            pass
+    if not callable(signal.getsignal(signal.SIGTERM)):
+        atexit.register(_fcleanup)
+        signal.signal(sig, _fcleanup)
 
 def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={}, purge_obsolete: bool=False) -> set:
     """Lookup and delete acme.json certificates matching purge_serial or
