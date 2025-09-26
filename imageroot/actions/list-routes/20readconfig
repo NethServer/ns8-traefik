@@ -12,7 +12,21 @@ import sys
 import urllib.request
 import urllib.parse
 from get_route import get_route
+import cert_helpers
 
+internal_names = set()
+
+for ocert in cert_helpers.list_internal_certificates(with_details=False):
+    internal_names.update(set(ocert['traefik_names']))
+
+def decorate_cert_attributes(oroute):
+    """Add certficate status to the route object passed as argument."""
+    global internal_names
+    if oroute.get('lets_encrypt') and oroute.get('host'):
+        if oroute['host'] not in internal_names:
+            # The route host has no corresponding acme.json certificate
+            oroute['lets_encrypt_status'] = "pending"
+    return oroute
 
 api_path = os.environ["API_PATH"]
 
@@ -45,6 +59,6 @@ except urllib.error.URLError as e:
 routes = [ route['name'].removesuffix('-https@file') for route in traefik_routes if route['name'].endswith('-https@file') ]
 
 if data != None and data.get('expand_list'):
-    routes = [ get_route({'instance': route}) for route in routes ]
+    routes = [ decorate_cert_attributes(get_route({'instance': route})) for route in routes ]
 
 json.dump(routes, fp=sys.stdout)
