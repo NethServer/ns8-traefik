@@ -73,15 +73,17 @@ def read_custom_cert_names():
 def read_names_of_automatic_http_routes() -> set:
     """Parse automatic HTTP route configurations and extract the ACME certificate names."""
     route_names = set()
-    host_pattern = re.compile(r'Host\(`(.*?)`\)')
+    host_pattern = re.compile(r'Host\(`(.*?)`\)', re.IGNORECASE)
     for cfgpath in glob.glob("configs/*.yml"):
         if cfgpath.startswith("configs/_"):
             continue # skip builtin files
         ocfg = parse_yaml_config(cfgpath)
         for orouter in ocfg.get('http', {}).get('routers', {}).values():
             rule_hosts = re.findall(host_pattern, orouter['rule'])
-            if orouter.get('tls', {}).get('certResolver') == 'acmeServer':
-                route_names.update(rule_hosts)
+            for ktls in orouter.get('tls', {}):
+                # case-insensitive key/value match in Traefik tls configuration:
+                if ktls.lower() == 'certresolver' and orouter['tls'][ktls].lower() == 'acmeserver':
+                    route_names.update(rule_hosts)
     return route_names
 
 def remove_custom_cert_by_path(path: str) -> set:
@@ -320,7 +322,7 @@ def _register_tempfile_cleanup(tpath: str):
             pass
     if not callable(signal.getsignal(signal.SIGTERM)):
         atexit.register(_fcleanup)
-        signal.signal(sig, _fcleanup)
+        signal.signal(signal.SIGTERM, _fcleanup)
 
 def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={}, purge_obsolete: bool=False) -> set:
     """Lookup and delete acme.json certificates matching purge_serial or
@@ -376,7 +378,7 @@ def clear_certresolver_in_http_routes(for_names: set):
     """Scan HTTP routes configuration files and disable ACME certResolver
     if its Host rules match the given for_names set."""
     route_names = set()
-    host_pattern = re.compile(r'Host\(`(.*?)`\)')
+    host_pattern = re.compile(r'Host\(`(.*?)`\)', re.IGNORECASE)
     for cfgpath in glob.glob("configs/*.yml"):
         if cfgpath.startswith("configs/_"):
             continue # skip builtin files
@@ -386,9 +388,14 @@ def clear_certresolver_in_http_routes(for_names: set):
             orouter = ocfg['http']['routers'][krouter]
             rule_hosts = re.findall(host_pattern, orouter.get('rule', ""))
             try:
-                if orouter['tls']['certResolver'] == 'acmeServer' and for_names.intersection(set(rule_hosts)):
-                    del orouter['tls']['certResolver']
-                    ocfg_changed = True
+                # Case-insensitive key/value match in Traefik tls configuration:
+                for ktls in orouter['tls']:
+                    if (ktls.lower() == 'certresolver'
+                        and orouter['tls'][ktls].lower() == 'acmeserver'
+                        and for_names.intersection(set(rule_hosts))):
+                        # name match, disable ACME certResolver
+                        del orouter['tls'][ktls]
+                        ocfg_changed = True
             except KeyError:
                 pass
         if ocfg_changed:
