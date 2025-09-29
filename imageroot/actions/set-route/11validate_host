@@ -31,5 +31,5 @@ if "host" in data and data.get("lets_encrypt") and data.get("lets_encrypt_check"
         for errline in acme_error.split('\n'):
             print(agent.SD_ERR + errline, file=sys.stderr)
         agent.set_status('validation-failed')
-        json.dump([{'field':'names', 'parameter':'names', 'value':data["host"], 'error':'newcert_acme_error', 'details':acme_error}], fp=sys.stdout)
+        json.dump([{'field':'host', 'parameter':'names', 'value':data["host"], 'error':'newcert_acme_error', 'details':acme_error}], fp=sys.stdout)
         exit(3)
