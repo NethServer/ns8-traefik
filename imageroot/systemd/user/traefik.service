@@ -6,7 +6,7 @@ Wants=certificate-exporter.path
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%S/state/environment
 Restart=always
-ExecStartPre=/bin/rm -f %t/traefik.pid %t/traefik.ctr-id
+ExecStartPre=/bin/rm -f %t/traefik.pid %t/traefik.ctr-id configs/_validation*.yml
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/traefik.pid \
