@@ -16,7 +16,7 @@ agent.set_weight(os.path.basename(__file__), 0) # Validation step, no task progr
 def main():
     request = json.load(sys.stdin)
     http_route_names = cert_helpers.read_names_of_automatic_http_routes()
-    if request.get('check_routes', False) and request['fqdn'] in http_route_names:
+    if request.get('check_routes', False) and request['fqdn'].lower() in http_route_names:
         agent.set_status('validation-failed')
         json.dump([{'field':'fqdn','parameter':'fqdn','value': request['fqdn'],'error':'fqdn_conflicts_with_route'}], fp=sys.stdout)
         sys.exit(2)

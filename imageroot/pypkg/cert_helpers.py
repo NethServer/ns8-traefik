@@ -45,7 +45,7 @@ def extract_certified_names(cert_data : bytearray) -> set:
         hostnames.update(san.get_values_for_type(x509.DNSName))
     except x509.ExtensionNotFound:
         pass
-    return hostnames
+    return set(map(str.lower, hostnames)) # lowercase names
 
 def read_default_cert_names():
     """Return the list of host names configured in the
@@ -59,7 +59,7 @@ def read_default_cert_names():
         sans = conf['tls']['stores']['default']['defaultGeneratedCert']['domain']['sans']
     except KeyError:
         sans = []
-    return main + sans
+    return list(map(str.lower, main + sans)) # lowercase names
 
 def read_custom_cert_names():
     """Return the list of main hostnames provided by custom/uploaded
@@ -84,7 +84,7 @@ def read_names_of_automatic_http_routes() -> set:
                 # case-insensitive key/value match in Traefik tls configuration:
                 if ktls.lower() == 'certresolver' and orouter['tls'][ktls].lower() == 'acmeserver':
                     route_names.update(rule_hosts)
-    return route_names
+    return set(map(str.lower, route_names)) # lowercase names
 
 def remove_custom_cert_by_path(path: str) -> set:
     """Remove the custom/uploaded certificate files and its Traefik
@@ -120,6 +120,7 @@ def remove_custom_cert_by_path(path: str) -> set:
 def has_acmejson_name(name: str) -> bool:
     """Return True if a certificate for name is found among acme.json
     Certificates."""
+    name = name.lower()
     for dcert in list_internal_certificates(with_details=False):
         if name in dcert['traefik_names']:
             return True
@@ -128,6 +129,7 @@ def has_acmejson_name(name: str) -> bool:
 def has_acmejson_cert(names: set) -> bool:
     """Return True if a certificate for the exact set of names is found
     among acme.json Certificates."""
+    names = set(map(str.lower, names)) # lowercase names
     for dcert in list_internal_certificates(with_details=False):
         if set(dcert['traefik_names']) == names:
             return True
@@ -182,6 +184,7 @@ def wait_acmejson_sync(timeout=120, interval=2.1, names=[]):
 def set_default_certificate(names: list):
     """Overwrite default certificate configuration to use an internal (acme.json) certificate
     with main name and sans."""
+    names = list(map(str.lower, names)) # lowercase names
     tlsconf = parse_yaml_config("configs/_default_cert.yml")
     defstore = tlsconf['tls']['stores']['default']
     if 'defaultCertificate' in defstore:
@@ -201,6 +204,8 @@ def add_default_certificate_name(main, sans=[]):
     the current certificate is already configured, 'main' is added as SAN,
     otherwise it is used to initialize a new defaultGeneratedCert
     configuration."""
+    main = main.lower()
+    sans = list(map(str.lower, sans)) # lowercase names
     tlsconf = parse_yaml_config("configs/_default_cert.yml")
     defstore = tlsconf['tls']['stores']['default']
     if 'defaultCertificate' in defstore:
@@ -329,6 +334,7 @@ def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={
     purge_names. Use at most one argument."""
     with open('acme/acme.json', 'r') as fp:
         acmejson = json.load(fp)
+    purge_names = set(map(str.lower, purge_names)) # lowercase names
     acmecerts = acmejson['acmeServer']["Certificates"] or []
     removed_names = set()
     preserved_certificates = []
@@ -377,6 +383,7 @@ def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={
 def clear_certresolver_in_http_routes(for_names: set):
     """Scan HTTP routes configuration files and disable ACME certResolver
     if its Host rules match the given for_names set."""
+    for_names = set(map(str.lower, for_names)) # lowercase names
     route_names = set()
     host_pattern = re.compile(r'Host\(`(.*?)`\)', re.IGNORECASE)
     for cfgpath in glob.glob("configs/*.yml"):
@@ -386,13 +393,13 @@ def clear_certresolver_in_http_routes(for_names: set):
         ocfg_changed = False
         for krouter in ocfg.get('http', {}).get('routers', {}):
             orouter = ocfg['http']['routers'][krouter]
-            rule_hosts = re.findall(host_pattern, orouter.get('rule', ""))
+            rule_hosts = set(map(str.lower, re.findall(host_pattern, orouter.get('rule', ""))))
             try:
                 # Case-insensitive key/value match in Traefik tls configuration:
                 for ktls in orouter['tls']:
                     if (ktls.lower() == 'certresolver'
                         and orouter['tls'][ktls].lower() == 'acmeserver'
-                        and for_names.intersection(set(rule_hosts))):
+                        and for_names.intersection(rule_hosts)):
                         # name match, disable ACME certResolver
                         del orouter['tls'][ktls]
                         ocfg_changed = True
@@ -495,6 +502,7 @@ def request_new_default_certificate(new_cert_names:list, merge_names:bool=False,
     """Request an ACME certificate with new_cert_names, and set is as
     Traefik's default certificate."""
     _lock_default_certificate()
+    new_cert_names = list(map(str.lower, new_cert_names)) # lowercase names
     cur_cert_names = read_default_cert_names()
     if merge_names == True:
         new_cert_names = cur_cert_names + new_cert_names
@@ -546,12 +554,12 @@ def update_redis_hosts_key_and_notify_event():
             continue # skip builtin files
         ocfg = parse_yaml_config(cfgpath)
         for orouter in ocfg.get('http', {}).get('routers', {}).values():
-            rule_hosts = re.findall(host_pattern, orouter['rule'])
+            rule_hosts = set(map(str.lower, re.findall(host_pattern, orouter['rule'])))
             route_names.update(rule_hosts)
     route_names.update(set(read_default_cert_names()))
     agent_id = os.environ["AGENT_ID"]
     wrdb = agent.redis_connect(privileged=True)
-    current_hosts = wrdb.smembers(f'{agent_id}/hosts')
+    current_hosts = set(map(str.lower, wrdb.smembers(f'{agent_id}/hosts')))
     if current_hosts != route_names:
         # Write pipeline to redis
         trx = wrdb.pipeline()

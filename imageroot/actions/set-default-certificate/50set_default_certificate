@@ -14,7 +14,7 @@ import datetime
 
 def main():
     request = json.load(sys.stdin)
-    new_cert_names = request['names']
+    new_cert_names = list(map(str.lower, request['names']))
     http_route_names = cert_helpers.read_names_of_automatic_http_routes()
     if request.get('check_routes', True) and http_route_names.intersection(set(new_cert_names)):
         agent.set_status('validation-failed')

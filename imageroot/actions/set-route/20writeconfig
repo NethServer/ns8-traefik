@@ -61,9 +61,9 @@ if data.get("path") is not None:
         path_prefix = path = "/"
 
 if data.get("host") is not None and data.get("path") is not None:
-    route = { "rule" :  f'Host(`{data["host"]}`) && (Path(`{path}`) || PathPrefix(`{path_prefix}`))', "priority": data.get('priority', 3) }
+    route = { "rule" :  f'Host(`{data["host"].lower()}`) && (Path(`{path}`) || PathPrefix(`{path_prefix}`))', "priority": data.get('priority', 3) }
 elif data.get("host") is not None:
-    route = { "rule":  f'Host(`{data["host"]}`)', "priority": data.get('priority', 2)}
+    route = { "rule":  f'Host(`{data["host"].lower()}`)', "priority": data.get('priority', 2)}
 elif data.get("path") is not None:
     route = { "rule": f'Path(`{path}`) || PathPrefix(`{path_prefix}`)', "priority": data.get('priority', 1)}
 else:
@@ -81,7 +81,7 @@ router_https['entryPoints'] = ["https"]
 router_https["tls"] = {}
 #router_https = route_s
 if data.get("host") is not None:
-    router_https["tls"]["domains"] = [{"main": data["host"]}]
+    router_https["tls"]["domains"] = [{"main": data["host"].lower()}]
 
 # Enable or disable Let's Encrypt certificate
 if data.get("host") is not None:

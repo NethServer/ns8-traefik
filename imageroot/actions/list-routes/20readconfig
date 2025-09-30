@@ -23,7 +23,7 @@ def decorate_cert_attributes(oroute):
     """Add certficate status to the route object passed as argument."""
     global internal_names
     if oroute.get('lets_encrypt') and oroute.get('host'):
-        if oroute['host'] not in internal_names:
+        if oroute['host'].lower() not in internal_names:
             # The route host has no corresponding acme.json certificate
             oroute['lets_encrypt_status'] = "pending"
     return oroute
