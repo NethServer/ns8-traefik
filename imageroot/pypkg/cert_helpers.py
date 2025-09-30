@@ -126,16 +126,18 @@ def has_acmejson_name(name: str) -> bool:
             return True
     return False
 
-def has_acmejson_cert(names: set) -> bool:
+def has_acmejson_cert(names: set, issubset: bool=False) -> bool:
     """Return True if a certificate for the exact set of names is found
     among acme.json Certificates."""
     names = set(map(str.lower, names)) # lowercase names
     for dcert in list_internal_certificates(with_details=False):
-        if set(dcert['traefik_names']) == names:
+        if issubset and set(dcert['traefik_names']) >= names:
+            return True
+        elif set(dcert['traefik_names']) == names:
             return True
     return False
 
-def wait_acmejson_sync(timeout=120, interval=2.1, names=[]):
+def wait_acmejson_sync(timeout=120, interval=2.1, names=[], issubset=False):
     """Poll the acme.json file every 'interval' seconds, until a
     certificate matching 'names' appears, an error occurs, or timeout
     seconds are elapsed. If list 'names' is given, it is expected to match
@@ -171,7 +173,7 @@ def wait_acmejson_sync(timeout=120, interval=2.1, names=[]):
                 print(agent.SD_ERR + f"Timeout after about {timeout} seconds. Certificate not obtained for {names}.", file=sys.stderr)
                 obtained = False
                 break
-            if has_acmejson_cert(set(names)):
+            if has_acmejson_cert(set(names), issubset):
                 obtained = True # certificate obtained successfully!
                 break
             read_fds, _, _ = select.select([fdmon], [], [], 0) # 0 = non blocking
@@ -287,7 +289,7 @@ def validate_certificate_names(main, sans=[], timeout=60):
     """Issue a certificate request to ACME server and return if it has
     been obtained or not."""
     # Check if we already have the same certificate in acme.json:
-    if has_acmejson_cert(set([main] + sans)):
+    if has_acmejson_cert(set([main] + sans), issubset=True):
         return True
     uniqconf = f"_validation{os.getpid()}"
     routerconf = {
@@ -315,7 +317,7 @@ def validate_certificate_names(main, sans=[], timeout=60):
     }
     _register_tempfile_cleanup(f"configs/{uniqconf}.yml")
     write_yaml_config(routerconf, f"configs/{uniqconf}.yml")
-    obtained = wait_acmejson_sync(timeout=timeout, interval=1.1, names=[main] + sans)
+    obtained = wait_acmejson_sync(timeout=timeout, interval=1.1, names=[main] + sans, issubset=True)
     os.unlink(f"configs/{uniqconf}.yml")
     return obtained
 
@@ -517,7 +519,7 @@ def request_new_default_certificate(new_cert_names:list, merge_names:bool=False,
     # To force a new ACME request we overwrite _default.yml.
     tstart = datetime.datetime.now(datetime.UTC)
     set_default_certificate(new_cert_names)
-    obtained = wait_acmejson_sync(names=new_cert_names, timeout=sync_timeout, interval=1.1)
+    obtained = wait_acmejson_sync(names=new_cert_names, timeout=sync_timeout, interval=1.1, issubset=False)
     acme_error = ""
     if obtained:
         # Notify hosts-changed event
