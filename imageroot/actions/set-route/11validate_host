@@ -11,8 +11,6 @@ import os
 import agent
 import cert_helpers
 
-DEFAULT_SYNC_TIMEOUT = 30 # Max wait time (seconds) to obtain a certificate
-
 agent.set_weight(os.path.basename(__file__), 0) # Validation step, no task progress at all
 
 # Try to parse the stdin as JSON.
@@ -26,7 +24,7 @@ if "host" in data and not data.get('path'):
         sys.exit(2)
 
 if "host" in data and data.get("lets_encrypt") and data.get("lets_encrypt_check"):
-    obtained, acme_error = cert_helpers.request_new_certificate([data["host"]], sync_timeout=DEFAULT_SYNC_TIMEOUT)
+    obtained, acme_error = cert_helpers.request_new_certificate([data["host"]])
     if not obtained:
         for errline in acme_error.split('\n'):
             print(agent.SD_ERR + errline, file=sys.stderr)

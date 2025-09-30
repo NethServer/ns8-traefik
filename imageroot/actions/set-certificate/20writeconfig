@@ -14,7 +14,7 @@ import datetime
 
 def main():
     request = json.load(sys.stdin)
-    obtained, acme_error = cert_helpers.request_new_default_certificate(new_cert_names=[request['fqdn']], merge_names=True, sync_timeout=request.get('sync_timeout', 30))
+    obtained, acme_error = cert_helpers.request_new_default_certificate(new_cert_names=[request['fqdn']], merge_names=True, sync_timeout=request.get('sync_timeout', 60))
     if obtained:
         json.dump({"obtained": True}, fp=sys.stdout)
     else:

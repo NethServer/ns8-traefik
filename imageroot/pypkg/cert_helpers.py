@@ -278,7 +278,7 @@ def traefik_last_acme_error_since(tstart):
         acme_error = 'traefik_last_acme_error_since(): logcli error - ' + str(ex)
     return acme_error
 
-def validate_certificate_names(main, sans=[], timeout=30):
+def validate_certificate_names(main, sans=[], timeout=60):
     """Issue a certificate request to ACME server and return if it has
     been obtained or not."""
     # Check if we already have the same certificate in acme.json:
@@ -491,7 +491,7 @@ def _lock_default_certificate():
     fd = os.open(".default-certificate.lock", os.O_RDWR | os.O_CREAT, 0o644)
     fcntl.flock(fd, fcntl.LOCK_EX)  # blocking exclusive lock
 
-def request_new_default_certificate(new_cert_names:list, merge_names:bool=False, sync_timeout:int=30) -> (bool, str):
+def request_new_default_certificate(new_cert_names:list, merge_names:bool=False, sync_timeout:int=60) -> (bool, str):
     """Request an ACME certificate with new_cert_names, and set is as
     Traefik's default certificate."""
     _lock_default_certificate()
@@ -523,7 +523,7 @@ def request_new_default_certificate(new_cert_names:list, merge_names:bool=False,
         acme_error = traefik_last_acme_error_since(tstart)
     return (obtained, acme_error)
 
-def request_new_certificate(new_cert_names:list, sync_timeout:int=30) -> (bool, str):
+def request_new_certificate(new_cert_names:list, sync_timeout:int=60) -> (bool, str):
     """Request an ACME certificate with new_cert_names, by configuring a temporary Traefik router."""
     # Before issuing a new ACME request, check if we have the certificate
     # in the internal storage:

@@ -12,8 +12,6 @@ import agent
 import cert_helpers
 import datetime
 
-DEFAULT_SYNC_TIMEOUT = 30 # Max wait time (seconds) to obtain a certificate
-
 def main():
     request = json.load(sys.stdin)
     new_cert_names = request['names']
@@ -22,7 +20,7 @@ def main():
         agent.set_status('validation-failed')
         json.dump([{'field':'names','parameter':'names','value': request['names'],'error':'name_route_conflict'}], fp=sys.stdout)
         sys.exit(2)
-    obtained, acme_error = cert_helpers.request_new_default_certificate(new_cert_names=new_cert_names, merge_names=request.get('merge', False), sync_timeout=request.get('sync_timeout', DEFAULT_SYNC_TIMEOUT))
+    obtained, acme_error = cert_helpers.request_new_default_certificate(new_cert_names=new_cert_names, merge_names=request.get('merge', False), sync_timeout=request.get('sync_timeout', 60))
     if not obtained:
         for errline in acme_error.split('\n'):
             print(agent.SD_ERR + errline, file=sys.stderr)

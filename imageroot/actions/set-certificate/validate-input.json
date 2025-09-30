@@ -43,7 +43,7 @@
             "type": "integer",
             "minimum": 1,
             "description": "Max number of seconds to wait for the certificate to be obtained",
-            "default": 30
+            "default": 60
         }
     }
 }
