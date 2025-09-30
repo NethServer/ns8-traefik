@@ -182,6 +182,8 @@ changed_names = set()
 if (request.get("lets_encrypt_cleanup") and
     original_data.get("host") and
     data.get("lets_encrypt") == False):
+    # Propagate the LE switch off to routes with the same Host:
+    cert_helpers.clear_certresolver_in_http_routes(for_names={original_data["host"]})
     # Traefik restarts only when the original Host exists in acme.json:
     changed_names = cert_helpers.purge_acme_json_and_restart_traefik(purge_names={original_data["host"]})
 

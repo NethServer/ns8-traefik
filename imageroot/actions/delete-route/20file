@@ -32,6 +32,7 @@ pf.unlink(missing_ok=True)
 changed_names = set()
 # Purge certificate, if it matches the route Host
 if route_host:
+    cert_helpers.clear_certresolver_in_http_routes(for_names={route_host})
     changed_names = cert_helpers.purge_acme_json_and_restart_traefik(purge_names={route_host})
 if not changed_names:
     # Traefik was not restarted: notify hosts-changed event here:

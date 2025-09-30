@@ -20,11 +20,13 @@ def main():
             exit_certificate_not_found_error('path', request['path'])
     elif request['type'] == 'internal':
         if 'serial' in request:
-            old_names = cert_helpers.purge_acme_json_and_restart_traefik(purge_serial=request['serial'])
-            if old_names:
-                cert_helpers.clear_certresolver_in_http_routes(old_names)
+            for dcert in cert_helpers.list_internal_certificates():
+                if dcert['serial'] == request['serial']:
+                    cert_helpers.clear_certresolver_in_http_routes(set(dcert['names']))
+                    break
             else:
                 exit_certificate_not_found_error('serial', request['serial'])
+            old_names = cert_helpers.purge_acme_json_and_restart_traefik(purge_serial=request['serial'])
         elif request.get('obsolete') == True:
             old_names = cert_helpers.purge_acme_json_and_restart_traefik(purge_obsolete=True)
     json.dump({"certificate_names": list(old_names)}, fp=sys.stdout)

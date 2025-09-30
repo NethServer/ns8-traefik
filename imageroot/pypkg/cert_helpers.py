@@ -398,7 +398,7 @@ def clear_certresolver_in_http_routes(for_names: set):
             rule_hosts = set(map(str.lower, re.findall(host_pattern, orouter.get('rule', ""))))
             try:
                 # Case-insensitive key/value match in Traefik tls configuration:
-                for ktls in orouter['tls']:
+                for ktls in list(orouter['tls']):
                     if (ktls.lower() == 'certresolver'
                         and orouter['tls'][ktls].lower() == 'acmeserver'
                         and for_names.intersection(rule_hosts)):
