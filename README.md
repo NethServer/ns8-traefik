@@ -269,7 +269,7 @@ requested names against existing HTTP routes to avoid conflicts.
   will verify that the requested names are not already used by existing
   HTTP routes.
 
-* `sync_timeout` (integer, optional, default: 30): Maximum number of
+* `sync_timeout` (integer, optional, default: 60): Maximum number of
   seconds to wait for the ACME certificate response.
 
 * `merge` (boolean, optional, default: false): If true, the resulting
@@ -329,7 +329,7 @@ Run this action to request a new default certificate for Traefik. The
 action parameters are:
 
 - `fqdn` (string): the name of the requested certificate
-- `sync_timeout` (integer, default `30`): the maximum number of seconds to
+- `sync_timeout` (integer, default `60`): the maximum number of seconds to
   wait for the certificate to be obtained
 
 If ACME challenge requirements are met, the new certificate will be valid
