@@ -28,7 +28,7 @@ Get invalid certificate status obtained by set-certificate
 
 Request an invalid certificate with set-default-certificate
     ${response} =  Run task    module/${MID}/set-default-certificate
-    ...    {"fqdn":"example2.com"}    rc_expected=2
+    ...    {"names": ["example2.com"]}    rc_expected=3
     Should Be Equal As Strings    ${response['obtained']}    False
 
 Get invalid certificate status obtained by set-default-certificate
