@@ -17,13 +17,22 @@ Get configured ACME server
     ${response} =  Run task    module/${MID}/get-acme-server    {}
     Should Be Equal As Strings    ${response['url']}        https://acme-staging-v02.api.letsencrypt.org/directory
 
-Request an invalid certificate
+Request an invalid certificate with set-certificate
     ${response} =  Run task    module/${MID}/set-certificate
     ...    {"fqdn":"example.com"}    rc_expected=2
     Should Be Equal As Strings    ${response['obtained']}    False
 
-Get invalid certificate status
+Get invalid certificate status obtained by set-certificate
     ${response} =  Run task    module/${MID}/get-certificate    {"fqdn": "example.com"}
+    Should Be Equal As Strings    ${response['type']}    selfsigned
+
+Request an invalid certificate with set-default-certificate
+    ${response} =  Run task    module/${MID}/set-default-certificate
+    ...    {"fqdn":"example2.com"}    rc_expected=2
+    Should Be Equal As Strings    ${response['obtained']}    False
+
+Get invalid certificate status obtained by set-default-certificate
+    ${response} =  Run task    module/${MID}/get-certificate    {"fqdn": "example2.com"}
     Should Be Equal As Strings    ${response['type']}    selfsigned
 
 Get certificate list
