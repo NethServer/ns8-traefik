@@ -13,6 +13,7 @@ roles are omitted.
 | `delete-route` | routeadm, fulladm |
 | `list-routes` | routeadm, fulladm |
 | `set-certificate` | certadm, fulladm |
+| `set-default-certificate` | certadm, fulladm |
 | `get-certificate` | certadm, fulladm |
 | `delete-certificate` | certadm, fulladm |
 | `list-certificates` | certadm, fulladm |
