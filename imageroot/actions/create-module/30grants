@@ -25,6 +25,7 @@ redis-exec SADD "${AGENT_ID}/roles/routeadm" "${routeadm_actions[@]}"
 certadm_actions=(
     delete-certificate
     set-certificate
+    set-default-certificate
     get-certificate
     list-certificates
 )
