@@ -19,8 +19,8 @@ Get configured ACME server
 
 Request an invalid certificate with set-certificate
     ${response} =  Run task    module/${MID}/set-certificate
-    ...    {"fqdn":"first.example.com"}    rc_expected=2
-    Should Be Equal As Strings    ${response['obtained']}    False
+    ...    {"fqdn":"first.example.com"}    decode_json=${False}    rc_expected=3
+    Should Contain    ${response}    newcert_acme_error
 
 Get invalid certificate status obtained by set-certificate
     ${response} =  Run task    module/${MID}/get-certificate    {"fqdn": "first.example.com"}
