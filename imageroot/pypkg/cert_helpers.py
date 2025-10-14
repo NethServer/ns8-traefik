@@ -70,21 +70,23 @@ def read_custom_cert_names():
         main_hostnames.append(hostname)
     return main_hostnames
 
-def read_names_of_automatic_http_routes() -> set:
-    """Parse automatic HTTP route configurations and extract the ACME certificate names."""
-    route_names = set()
+def read_host_names_of_traefik_routers(only_http_routes=False) -> set:
+    """Parse Traefik router configurations and extract the ACME certificate names."""
+    router_names = set()
     host_pattern = re.compile(r'Host\(`(.*?)`\)', re.IGNORECASE)
     for cfgpath in glob.glob("configs/*.yml"):
         if cfgpath.startswith("configs/_"):
             continue # skip builtin files
         ocfg = parse_yaml_config(cfgpath)
-        for orouter in ocfg.get('http', {}).get('routers', {}).values():
+        for rkey, orouter in ocfg.get('http', {}).get('routers', {}).items():
+            if only_http_routes and not rkey.endswith('-https'):
+                continue # the router does not belong to an HTTP route, ignore it
             rule_hosts = re.findall(host_pattern, orouter['rule'])
             for ktls in orouter.get('tls', {}):
                 # case-insensitive key/value match in Traefik tls configuration:
                 if ktls.lower() == 'certresolver' and orouter['tls'][ktls].lower() == 'acmeserver':
-                    route_names.update(rule_hosts)
-    return set(map(str.lower, route_names)) # lowercase names
+                    router_names.update(rule_hosts)
+    return set(map(str.lower, router_names)) # lowercase names
 
 def remove_custom_cert_by_path(path: str) -> set:
     """Remove the custom/uploaded certificate files and its Traefik
@@ -340,7 +342,7 @@ def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={
     acmecerts = acmejson['acmeServer']["Certificates"] or []
     removed_names = set()
     preserved_certificates = []
-    names_of_http_routes = read_names_of_automatic_http_routes()
+    names_of_traefik_routers = read_host_names_of_traefik_routers()
     default_cert_names = set(read_default_cert_names())
     for ocert in acmecerts:
         bcert = base64.b64decode(ocert["certificate"])
@@ -358,7 +360,7 @@ def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={
                 preserved_certificates.append(ocert)
         elif purge_obsolete:
             if (certificate_names != default_cert_names
-                and not certificate_names.issubset(names_of_http_routes)):
+                and not certificate_names.issubset(names_of_traefik_routers)):
                 # Obsolete certificate found
                 removed_names.update(certificate_names)
             else:

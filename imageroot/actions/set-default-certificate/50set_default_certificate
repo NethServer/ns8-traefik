@@ -15,7 +15,7 @@ import datetime
 def main():
     request = json.load(sys.stdin)
     new_cert_names = list(map(str.lower, request['names']))
-    http_route_names = cert_helpers.read_names_of_automatic_http_routes()
+    http_route_names = cert_helpers.read_host_names_of_traefik_routers(only_http_routes=True)
     if request.get('check_routes', True) and http_route_names.intersection(set(new_cert_names)):
         agent.set_status('validation-failed')
         json.dump([{'field':'names','parameter':'names','value': request['names'],'error':'name_route_conflict'}], fp=sys.stdout)

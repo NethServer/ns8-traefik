@@ -16,13 +16,13 @@ THIRTY_DAYS = datetime.timedelta(days=30)
 def main():
     certificates = []
     default_cert_names = cert_helpers.read_default_cert_names()
-    names_of_http_routes = cert_helpers.read_names_of_automatic_http_routes()
+    names_of_traefik_routers = cert_helpers.read_host_names_of_traefik_routers()
     for dcert in cert_helpers.list_internal_certificates():
         ocert = prepare_for_output(dcert)
         ocert['type'] = 'internal'
         if set(ocert['names']) == set(default_cert_names):
             ocert['default'] = True
-        elif set(ocert['names']).intersection(names_of_http_routes):
+        elif set(ocert['names']).intersection(names_of_traefik_routers):
             ocert['automatic'] = True
         else:
             ocert['obsolete'] = True
