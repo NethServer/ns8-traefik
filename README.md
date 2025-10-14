@@ -38,35 +38,63 @@ This is the priority of the rules type evaluation (top-down):
 
 ### Parameters
 
-- `instance`: the instance name, which is unique inside the cluster, mandatory
-- `skip_cert_verify`: do not verify self signed certificate (boolean)
-- `url`: the backend target URL, mandatory
-- `host`: a fully qualified domain name as virtual host
-- `path`: a path prefix, the matching evaluation will be performed whit and without the trailing slash, eg `/foo` will match `/foo` and `/foo/*`, also `/foo/` will match `/foo` and `/foo/*`
-- `lets_encrypt`: can be `true` or `false`, if set to `true` request a valid Let's Encrypt certificate, mandatory
-- `http2https` can be `true` or `false`, if set to `true` HTTP will be redirect to HTTPS, mandatory
-- `strip_prefix`: can be `true` or `false`, if set to `true` the prefix of the requested path will be stripped from the original request before sending it to the downstream server.
-- `user_created`: can be `true` or `false`, if set to `true` the route will be marked as manually created.
-- `headers`: list of headers to add/remove from an HTTP request/response before reaching the service/client, to remove the the header an empty value must be set. Example:
-```json
-      "headers": {
-        "request": {
-          "X-foo-add": "foo",
-          "X-bar-remove": ""
-        },
-        "response": {
-          "X-bar-add": "bar",
-          "X-foo-remove": ""
-        }
-      }
-```
-- `forward_auth`: prop to configure the forwardAuth config, to remove the the header an empty value must be set. Example:
-```json
-      "forward_auth": {
-        "address": "http://127.0.0.1:9311/api/module/test/http-basic/test-action",
-        "skip_tls_verify": true
-      }
-```
+If not otherwise stated, all parameters are optional:
+
+- `instance` (mandatory): the instance name, which is unique inside the
+  cluster.
+
+- `skip_cert_verify`: do not verify self signed certificate (boolean).
+
+- `url`: the backend target URL. Mandatory for route creation.
+
+- `host`: a fully qualified domain name as virtual host. At least one of
+  `path` and `host` must be set for new route creation.
+
+- `path`: a path prefix, the matching evaluation will be performed whit
+  and without the trailing slash, eg `/foo` will match `/foo` and
+  `/foo/*`, also `/foo/` will match `/foo` and `/foo/*`. At least one of
+  `path` and `host` must be set for new route creation.
+
+- `lets_encrypt`: can be `true` or `false`, if set to `true`
+  request a Let's Encrypt certificate that will be marked as "Automatic".
+
+- `http2https` can be `true` or `false`, if set to `true` HTTP will be
+  redirect to HTTPS.
+
+- `strip_prefix`: can be `true` or `false`, if set to `true` the prefix of
+  the requested path will be stripped from the original request before
+  sending it to the downstream server.
+
+- `user_created`: can be `true` or `false`, if set to `true` the route
+  will be marked as manually created.
+
+- `headers`: list of headers to add/remove from an HTTP request/response
+  before reaching the service/client, to remove the the header an empty
+  value must be set. Example:
+
+  ```json
+  {
+    "request": {
+      "X-foo-add": "foo",
+      "X-bar-remove": ""
+    },
+    "response": {
+      "X-bar-add": "bar",
+      "X-foo-remove": ""
+    }
+  }
+  ```
+
+- `forward_auth`: prop to configure the forwardAuth config, to remove the
+  the header an empty value must be set. Example:
+
+  ```json
+  {
+    "address": "http://127.0.0.1:9311/api/module/test/http-basic/test-action",
+    "skip_tls_verify": true
+  }
+  ```
+
 - `lets_encrypt_cleanup` (optional): when the HTTP route Let'Encrypt certificate is no longer
   needed (i.e. `lets_encrypt` is set to `false`), this optional boolean attribute
   can trigger the cleanup of the internal certificate store (`acme.json`
@@ -326,17 +354,18 @@ Set a new default certificate and wait up to 60 seconds for the ACME certificate
 
 ## set-certificate
 
-Run this action to request a new default certificate for Traefik. The
-action parameters are:
+Run this action to issue a certificate request for a single FQDN. The
+certificate will be marked Automatic as those requested by HTTP routes.
+
+The action parameters are:
 
 - `fqdn` (string): the name of the requested certificate
 - `sync_timeout` (integer, default `60`): the maximum number of seconds to
   wait for the certificate to be obtained
 
 If ACME challenge requirements are met, the new certificate will be valid
-for the given `fqdn` and any other names configured by previous action
-calls. See also <https://letsencrypt.org/docs/challenge-types/>. If not,
-the previous configuration is retained.
+for the given `fqdn`. If not, a validation error is returned. Full ACME
+protocol error is in the `details` attribute.
 
 Example:
 
@@ -344,9 +373,23 @@ Example:
 api-cli run module/traefik1/set-certificate --data '{"fqdn":"myhost.example.com"}'
 ```
 
+Output (validation error):
+
+```json
+[
+  {
+    "details": "2025-10-14T15:06:57Z unable to generate a certificate for the domains [myhost.example.com]: acme: error: 400 :: POST :: https://acme-staging-v02.api.letsencrypt.org/acme/new-order :: urn:ietf:params:acme:error:rejectedIdentifier :: Error creating new order :: Cannot issue for \"myhost.example.com\": The ACME server refuses to issue a certificate for this domain name, because it is forbidden by policy\n",
+    "error": "newcert_acme_error",
+    "field": "fqdn",
+    "parameter": "fqdn",
+    "value": "myhost.example.com"
+  }
+]
+```
+
 ## get-certificate
 
-Run this action to get the status of requested a Let's Encrypt certificate
+Run this action to get a certificate for the given FQDN.
 
 The action takes 1 parameter:
 - `fqdn`: the fqdn of the requested certificate
@@ -357,9 +400,27 @@ api-cli run module/traefik1/get-certificate --data '{"fqdn":"myhost.example.com"
 ```
 
 Output:
+
+```json
+{
+  "fqdn": "myhost.example.com",
+  "obtained": true,
+  "type": "internal",
+  "lets_encrypt": true,
+  "certificates": [{"cert":"...", "key": "..."}]
+}
 ```
-{"fqdn": "myhost.example.com", "obtained": true, "type": "internal"}
-```
+
+- With `obtained:true`, the returned object contains a non-empty list of
+  certificates valid for the given FQDN. The `type` attribute can be
+  `internal` or `custom` and refers to the first element of the list. The
+  `lets_encrypt` flag is `true` if at least one of the matching
+  certificates was obtained from Let's Encrypt.
+
+- Otherwise, with `obtained:false` the default self-signed certificate is
+  returned (`type` attribute is `selfsigned`) as first element of
+  `certificates` list.
+
 
 ## delete-certificate
 
@@ -369,13 +430,15 @@ parameters are:
 - `type` (one of `internal` or `custom`): use `internal` for Let's Encrypt
   certificates, `custom` for uploaded certificates.
 - `serial` (string): the serial number of an intenal certificate
+- `obsolete` (bool): to remove internal certificates marked "obsolete"
 - `path` (string): the file path of a custom certificate
 
 The effects depend on the certificate type:
 
 - `internal` If the certificate was obtained from Let's Encrypt using the
   ACME protocol, the `serial` is removed from Traefik's `acme.json` file
-  and Traefik is immediately restarted.
+  and Traefik is immediately restarted. If `serial` is not given and
+  `obsolete:true` is, remove any obsolete internal certificate.
 - `custom` If the certificate was uploaded, the matching `path` is erased
   from disk along with its relative private key and Traefik's
   configuration.
@@ -470,7 +533,7 @@ api-cli run get-acme-server  --agent module/traefik1
 ```
 
 Output:
-```
+```json
 {"url": "https://acme-staging-v02.api.letsencrypt.org/directory", "email":"", "challenge":"HTTP-01"}
 ```
 
