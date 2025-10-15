@@ -9,7 +9,7 @@
         },
         {
             "fqdn": "example.com",
-            "check_routes": true
+            "lets_encrypt": false
         },
         {
             "fqdn": "example.com",
@@ -21,10 +21,10 @@
         "fqdn"
     ],
     "properties": {
-        "check_routes": {
-            "type":"boolean",
-            "default": false,
-            "description": "If true, check the fqdn is not used by an HTTP route with Let's Encrypt flag set"
+        "lets_encrypt": {
+            "type": "boolean",
+            "description": "When true, request Let's Encrypt certificate; when false, remove the certificate from acme.json and restart Traefik if needed",
+            "default": true
         },
         "fqdn": {
             "description": "A fully qualified domain name, or a wildcard name pattern",

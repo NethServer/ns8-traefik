@@ -52,11 +52,14 @@ def main():
         skey = base64.b64encode(open("selfsigned.key", "rb").read()).decode('utf-8')
         certificates = [{"cert": scert, "key": skey}]
 
+    # Report if any matching certificate is internal (obtained from LE):
+    lets_encrypt = any(cert[2] == "internal" for cert in certmatches)
     response = {
         "fqdn": fqdn,
         "type": ctype,
         "obtained": obtained,
         "certificates": certificates,
+        "lets_encrypt": lets_encrypt,
     }
     json.dump(response, fp=sys.stdout)
 
