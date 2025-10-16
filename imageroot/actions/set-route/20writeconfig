@@ -82,10 +82,8 @@ router_https["tls"] = {}
 #router_https = route_s
 if data.get("host") is not None:
     router_https["tls"]["domains"] = [{"main": data["host"].lower()}]
-
-# Enable or disable Let's Encrypt certificate
-if data.get("host") is not None:
-    if data["lets_encrypt"]:
+    # Enable or disable Let's Encrypt certificate
+    if data.get("lets_encrypt") is True:
         router_https["tls"]["certResolver"] = "acmeServer"
 
 # IP addresses allowed to use the router
