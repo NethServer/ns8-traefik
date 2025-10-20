@@ -52,8 +52,7 @@ def main():
         skey = base64.b64encode(open("selfsigned.key", "rb").read()).decode('utf-8')
         certificates = [{"cert": scert, "key": skey}]
 
-    # Report if any matching certificate is internal (obtained from LE):
-    lets_encrypt = any(cert[2] == "internal" for cert in certmatches)
+    lets_encrypt = fqdn in cert_helpers.read_host_names_of_traefik_routers()
     response = {
         "fqdn": fqdn,
         "type": ctype,
