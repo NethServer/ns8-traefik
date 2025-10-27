@@ -336,10 +336,13 @@ def _register_tempfile_cleanup(tpath: str):
 def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={}, purge_obsolete: bool=False) -> set:
     """Lookup and delete acme.json certificates matching purge_serial or
     purge_names. Use at most one argument."""
-    with open('acme/acme.json', 'r') as fp:
-        acmejson = json.load(fp)
+    try:
+        with open('acme/acme.json', 'r') as fp:
+            acmejson = json.load(fp)
+        acmecerts = acmejson['acmeServer']["Certificates"] or []
+    except (FileNotFoundError, KeyError, json.JSONDecodeError):
+        return set() # nothing has been purged
     purge_names = set(map(str.lower, purge_names)) # lowercase names
-    acmecerts = acmejson['acmeServer']["Certificates"] or []
     removed_names = set()
     preserved_certificates = []
     names_of_traefik_routers = read_host_names_of_traefik_routers()
