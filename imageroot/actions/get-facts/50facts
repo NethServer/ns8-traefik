@@ -73,7 +73,7 @@ info["acme_manual_certificates"] = len(cert_helpers.read_default_cert_names())
 # Retrieve custom certificate
 info["custom_certificates"] = len(cert_helpers.read_custom_cert_names())
 
-def hash_hostname(hostname: str) -> str:
+def hash_hostname(hostname: str, salt: str) -> str:
     '''
     Return a hostname where the part before the last dot is replaced by its MD5 hex digest,
     while the last label (TLD) remains in clear-text.
@@ -89,7 +89,8 @@ def hash_hostname(hostname: str) -> str:
         to_hash = hostname
         tld = None
     else:
-        to_hash = hostname[:idx]
+        # Prepend a random string against bruteforce:
+        to_hash = salt + hostname[:idx]
         tld = hostname[idx + 1 :]
     # compute md5 hex digest of the preceding parts
     digest = hashlib.md5(to_hash.encode('utf-8')).hexdigest()
@@ -98,6 +99,7 @@ def hash_hostname(hostname: str) -> str:
 def get_name_module_map():
     """Build a map name-module_id to associate modules with customers."""
     rdb = agent.redis_connect(use_replica=True)
+    salt = rdb.get("cluster/uuid") or os.getenv("MODULE_ID")
     has_subscription = rdb.hget("cluster/subscription", "provider") in ["nsent", "nscom"]
     # Generate regex patterns that match a module ID as a substring
     module_patterns = {}
@@ -126,7 +128,7 @@ def get_name_module_map():
                 if has_subscription:
                     hkey = name
                 else:
-                    hkey = hash_hostname(name)
+                    hkey = hash_hostname(name, salt)
                 if rkey.endswith("-set-certificate"):
                     # Low-priority to nethvoice-proxy and mail
                     results.setdefault(hkey, module_id)
