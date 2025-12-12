@@ -91,7 +91,7 @@ def hash_hostname(hostname: str) -> str:
     else:
         to_hash = hostname[:idx]
         tld = hostname[idx + 1 :]
-    # compute md5 hex digest of the heading parts
+    # compute md5 hex digest of the preceding parts
     digest = hashlib.md5(to_hash.encode('utf-8')).hexdigest()
     return f'{digest}.{tld}' if tld else digest
 
@@ -100,7 +100,10 @@ def get_name_module_map():
     rdb = agent.redis_connect(use_replica=True)
     has_subscription = rdb.hget("cluster/subscription", "provider") in ["nsent", "nscom"]
     # Generate regex patterns that match a module ID as a substring
-    module_patterns = dict((mid, re.compile('(?<![A-Za-z0-9])' + re.escape(mid) + '(?![A-Za-z0-9])', re.IGNORECASE)) for mid in set(rdb.hkeys("cluster/module_node")))
+    module_patterns = {}
+    for mid in set(rdb.hkeys("cluster/module_node")):
+        pattern = re.compile('(?<![A-Za-z0-9])' + re.escape(mid) + '(?![A-Za-z0-9])', re.IGNORECASE)
+        module_patterns[mid] = pattern
     def extract_module_id(router_name):
         router_name = router_name.lower()
         for k, p in module_patterns.items():
