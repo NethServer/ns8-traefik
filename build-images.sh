@@ -12,6 +12,7 @@ buildah add "${container}" ui /ui
 buildah config --entrypoint=/ \
     --label="org.nethserver.images=docker.io/traefik:v3.5.6" \
     --label="org.nethserver.flags=core_module" \
+    --label="org.nethserver.min-core=3.17.0-0" \
     "${container}"
 buildah commit "${container}" "${repobase}/${reponame}"
 images+=("${repobase}/${reponame}")

@@ -15,8 +15,13 @@ from get_route import get_route
 import cert_helpers
 import re
 import agent
+import agent.facts
 import glob
 import hashlib
+
+rdb = agent.redis_connect(use_replica=True)
+anon_enforcing = not agent.facts.has_subscription(rdb)
+agent.facts.init_pseudonymization(anon_enforcing, rdb)
 
 api_path = os.environ["API_PATH"]
 
@@ -73,34 +78,9 @@ info["acme_manual_certificates"] = len(cert_helpers.read_default_cert_names())
 # Retrieve custom certificate
 info["custom_certificates"] = len(cert_helpers.read_custom_cert_names())
 
-def hash_hostname(hostname: str, salt: str) -> str:
-    '''
-    Return a hostname where the part before the last dot is replaced by its MD5 hex digest,
-    while the last label (TLD) remains in clear-text.
-
-    Examples
-    - 'www.example.com' -> '5d432f696c271156a8f7ba17b5b0a5a4.com'
-    - 'example' -> '<md5_of_example>'  (no TLD to preserve)
-    '''
-    # find last label separator
-    idx = hostname.rfind('.')
-    if idx == -1:
-        # no TLD found: hash the whole hostname
-        to_hash = hostname
-        tld = None
-    else:
-        # Prepend a random string against bruteforce:
-        to_hash = salt + hostname[:idx]
-        tld = hostname[idx + 1 :]
-    # compute md5 hex digest of the preceding parts
-    digest = hashlib.md5(to_hash.encode('utf-8')).hexdigest()
-    return f'{digest}.{tld}' if tld else digest
-
 def get_name_module_map():
     """Build a map name-module_id to associate modules with customers."""
     rdb = agent.redis_connect(use_replica=True)
-    salt = rdb.get("cluster/uuid") or os.getenv("MODULE_ID")
-    has_subscription = rdb.hget("cluster/subscription", "provider") in ["nsent", "nscom"]
     # Generate regex patterns that match a module ID as a substring
     module_patterns = {}
     for mid in set(rdb.hkeys("cluster/module_node")):
@@ -125,10 +105,7 @@ def get_name_module_map():
                 continue
             rule_hosts = re.findall(host_pattern, orouter['rule'])
             for name in rule_hosts:
-                if has_subscription:
-                    hkey = name
-                else:
-                    hkey = hash_hostname(name, salt)
+                hkey = agent.facts.pseudo_domain(name)
                 if rkey.endswith("-set-certificate"):
                     # Low-priority to nethvoice-proxy and mail
                     results.setdefault(hkey, module_id)
