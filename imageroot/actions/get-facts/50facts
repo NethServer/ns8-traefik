@@ -17,7 +17,6 @@ import re
 import agent
 import agent.facts
 import glob
-import hashlib
 
 rdb = agent.redis_connect(use_replica=True)
 anon_enforcing = not agent.facts.has_subscription(rdb)
