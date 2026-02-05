@@ -9,7 +9,7 @@ set -e
 
 CERT_FILE=uploaded_cert
 KEY_FILE=uploaded_key
-PASSPHRASE_KEY=0
+NO_PASSPHRASE_KEY=0
 VALID_KEY=0
 TYPE_KEY=""
 
@@ -18,11 +18,11 @@ del_certs() {
 }
 
 # checking if key has a passphrase
-if openssl rsa -check -in $KEY_FILE -passin pass:1234 >/dev/null 2>&1; then
-    PASSPHRASE_KEY=1
+if openssl pkey -in $KEY_FILE -passin pass:1234 >/dev/null 2>&1; then
+    NO_PASSPHRASE_KEY=1
 fi
 
-if [ $PASSPHRASE_KEY -eq 0 ]; then
+if [ $NO_PASSPHRASE_KEY -eq 0 ]; then
     echo "A key with a passphrase is not allowed." 1>&2
     echo "set-status validation-failed" >&${AGENT_COMFD:-2}
     printf '[{"field":"keyFile","parameter":"keyFile","value":"","error":"invalid_key"}]\n'
