@@ -16,6 +16,15 @@ del_certs() {
     rm -f $KEY_FILE $CERT_FILE
 }
 
+# checking if key has a passphrase
+if ! openssl pkey -in $KEY_FILE -passin pass: >/dev/null 2>&1; then
+    echo "A key with a passphrase is not allowed." 1>&2
+    echo "set-status validation-failed" >&${AGENT_COMFD:-2}
+    printf '[{"field":"keyFile","parameter":"keyFile","value":"","error":"invalid_key"}]\n'
+    del_certs
+    exit 2
+fi
+
 # checking if key is valid
 if openssl rsa -check -in $KEY_FILE >/dev/null 2>&1; then
     VALID_KEY=1
