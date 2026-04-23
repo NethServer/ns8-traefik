@@ -602,3 +602,8 @@ api-cli run module/traefik1/get-trusted-proxies
 Output:
 ```json
 {"proxies": ["192.168.100.1"], "depth": 1}
+```
+
+## Running tests locally
+
+This module uses the NS8 standard testing infrastructure. For instructions on how to run the test suite locally, refer to the [Running tests locally](https://github.com/NethServer/ns8-github-actions/blob/v1/README.md#running-tests-locally) section of the ns8-github-actions repository.
