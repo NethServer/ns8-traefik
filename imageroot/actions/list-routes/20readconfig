@@ -28,7 +28,7 @@ def decorate_cert_attributes(oroute):
             oroute['lets_encrypt_status'] = "pending"
     return oroute
 
-api_path = os.environ["API_PATH"]
+api_path = agent.read_envfile("secrets.env")["API_PATH"]
 
 data = json.load(sys.stdin)
 
