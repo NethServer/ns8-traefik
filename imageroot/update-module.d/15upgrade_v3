@@ -158,18 +158,16 @@ def write_dynamic_config(config_file, dynamic_config):
     """Atomically overwrite a Traefik dynamic config file with a new
     configuration."""
     global yaml_options
-    with open(config_file + ".tmp", "w") as ofile:
+    with agent.safe_open(config_file, "w") as ofile:
         yaml.safe_dump(dynamic_config, stream=ofile, **yaml_options)
-    os.rename(config_file + ".tmp", config_file)
     print(f"Dynamic configuration written to {config_file}")
 
 def write_static_cfg(static_cfg):
     """Atomically overwrite Traefik's static config file with a new
     configuration."""
     global yaml_options
-    with open("traefik.yaml.tmp", "w") as ofile:
+    with agent.safe_open("traefik.yaml", "w") as ofile:
         yaml.safe_dump(static_cfg, stream=ofile, **yaml_options)
-    os.rename("traefik.yaml.tmp", "traefik.yaml")
     print("Static configuration written to traefik.yaml")
 
 if __name__ == "__main__":
