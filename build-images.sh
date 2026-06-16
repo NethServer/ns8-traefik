@@ -10,7 +10,7 @@ container=$(buildah from scratch)
 buildah add "${container}" imageroot /imageroot
 buildah add "${container}" ui /ui
 buildah config --entrypoint=/ \
-    --label="org.nethserver.images=docker.io/traefik:v3.6.20" \
+    --label="org.nethserver.images=docker.io/traefik:v3.6.21" \
     --label="org.nethserver.flags=core_module" \
     --label="org.nethserver.min-core=3.17.0-0" \
     "${container}"
