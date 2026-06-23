@@ -22,7 +22,7 @@ rdb = agent.redis_connect(use_replica=True)
 anon_enforcing = not agent.facts.has_subscription(rdb)
 agent.facts.init_pseudonymization(anon_enforcing, rdb)
 
-api_path = os.environ["API_PATH"]
+api_path = agent.read_envfile("secrets.env")["API_PATH"]
 
 # Get the list of routers keys with pagination support
 try:
