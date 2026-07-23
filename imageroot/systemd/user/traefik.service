@@ -4,7 +4,7 @@ Wants=certificate-exporter.path
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
+EnvironmentFile=%E/state/environment
 Restart=always
 ExecStartPre=/bin/rm -f %t/traefik.pid %t/traefik.ctr-id configs/_validation*.yml
 ExecStart=/usr/bin/podman run \
@@ -28,7 +28,7 @@ ExecStop=/usr/bin/podman stop --ignore --cidfile %t/traefik.ctr-id -t 15
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/traefik.ctr-id
 PIDFile=%t/traefik.pid
 Type=forking
-WorkingDirectory=%S/state
+WorkingDirectory=%E/state
 SyslogIdentifier=%u
 
 [Install]
