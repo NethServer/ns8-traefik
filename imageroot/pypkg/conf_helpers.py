@@ -3,15 +3,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import agent
 import os
 import re
 import yaml
 
 def write_yaml_config(conf, path):
     """Safely write a configuration file."""
-    with open(path + '.tmp', 'w') as fp:
-        fp.write(yaml.safe_dump(conf, default_flow_style=False, sort_keys=False, allow_unicode=True))
-    os.rename(path + '.tmp', path)
+    with agent.safe_open(path, 'w') as fp:
+        yaml.safe_dump(conf, stream=fp, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
 def parse_yaml_config(path):
     """Parse a YAML configuration file."""

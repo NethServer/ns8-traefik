@@ -5,6 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import agent
 import json
 import os
 import re
@@ -19,7 +20,7 @@ def get_route(data, ignore_error = False):
     module = quote(data['instance'])
     route = {}
     middlewares = []
-    api_path = os.environ["API_PATH"]
+    api_path = agent.read_envfile("secrets.env")["API_PATH"]
 
     agent_id = os.environ["AGENT_ID"]
     try:

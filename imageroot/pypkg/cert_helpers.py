@@ -252,9 +252,8 @@ def reset_selfsigned_certificate():
 
 def write_yaml_config(conf, path):
     """Safely write a configuration file."""
-    with open(path + '.tmp', 'w') as fp:
-        fp.write(yaml.safe_dump(conf, default_flow_style=False, sort_keys=False, allow_unicode=True))
-    os.rename(path + '.tmp', path)
+    with agent.safe_open(path, 'w') as fp:
+        yaml.safe_dump(conf, stream=fp, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
 def parse_yaml_config(path):
     """Parse a YAML configuration file."""
@@ -380,10 +379,11 @@ def purge_acme_json_and_restart_traefik(purge_serial: str="", purge_names: set={
     #
     acmejson['acmeServer']["Certificates"][:] = preserved_certificates
     tmpmask = os.umask(0o177) # Restrict new file permissions to 0600
-    with open('acme/acme.json.tmp', 'w') as tmpfp:
-        json.dump(acmejson, fp=tmpfp)
-    os.rename('acme/acme.json.tmp', 'acme/acme.json')
-    os.umask(tmpmask) # Restore previous mask
+    try:
+        with agent.safe_open('acme/acme.json', 'w') as tmpfp:
+            json.dump(acmejson, fp=tmpfp)
+    finally:
+        os.umask(tmpmask) # Restore previous mask
     agent.run_helper("systemctl", "--user", "restart", "traefik")
     return removed_names
 

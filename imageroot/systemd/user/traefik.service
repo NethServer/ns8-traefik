@@ -7,6 +7,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
 Restart=always
 ExecStartPre=/bin/rm -f %t/traefik.pid %t/traefik.ctr-id configs/_validation*.yml
+ExecStartPre=-runagent generate-secrets
 ExecStart=/usr/bin/podman run \
     --detach \
     --conmon-pidfile=%t/traefik.pid \
@@ -15,6 +16,7 @@ ExecStart=/usr/bin/podman run \
     --network=host \
     --replace --name=%N \
     --env=PROXIES_DEPTH \
+    --env-file=secrets.env \
     --volume=./acme:/etc/traefik/acme:z \
     --volume=./traefik.yaml:/etc/traefik/traefik.yaml:z \
     --volume=./selfsigned.crt:/etc/traefik/selfsigned.crt:z \

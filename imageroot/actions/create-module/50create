@@ -42,9 +42,7 @@ EOF
 #
 # Setup APIs endpoint
 #
-API_PATH="$(uuidgen)"
-printf "API_PATH=%s\n" "${API_PATH}" >> environment
-cat <<EOF > configs/_api.yml
+cat <<'EOF' > configs/_api.yml
 http:
   middlewares:
     ApisEndpointMw0:
@@ -54,7 +52,7 @@ http:
     ApisEndpointMw1:
       stripPrefix:
         prefixes:
-        - /${API_PATH}
+        - /{{env "API_PATH"}}
   routers:
     ApisEndpointHttp:
       entrypoints:
@@ -63,7 +61,7 @@ http:
       - ApisEndpointMw1
       - ApisEndpointMw0
       priority: 100000
-      rule: PathPrefix(\`/${API_PATH}/api\`)
+      rule: PathPrefix(`/{{env "API_PATH"}}/api`)
       service: api@internal
 EOF
 
