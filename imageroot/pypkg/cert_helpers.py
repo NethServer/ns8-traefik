@@ -449,8 +449,8 @@ def extract_certificate_attributes(cert_data : bytearray) -> dict:
         "subject": x509_name_to_string(cert.subject) or cert.subject.rfc4514_string(),
         "issuer": cert.issuer.rfc4514_string(),
         "serial": str(cert.serial_number),
-        "valid_to": cert.not_valid_after.replace(tzinfo=datetime.timezone.utc),
-        "valid_from": cert.not_valid_before.replace(tzinfo=datetime.timezone.utc),
+        "valid_to": cert.not_valid_after_utc,
+        "valid_from": cert.not_valid_before_utc,
     }
 
 def list_internal_certificates(acmejson_path: str='acme/acme.json', with_details: bool=True) -> list:
