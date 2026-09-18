@@ -53,11 +53,11 @@ try:
             else:
                 page = int(res.headers['X-Next-Page'])
 except urllib.error.URLError as e:
-    # the traefik service is stopped: this is a known, reported condition
-    # (core detects and labels it separately), not a reason to abort here
-    print(f'traefik daemon unreachable, returning no routes: {e.reason}', file=sys.stderr)
-    json.dump([], fp=sys.stdout)
-    sys.exit(0)
+    # a stopped traefik service is a known condition core also detects and
+    # labels separately (get-status): fail here too, as a fallback signal
+    # in case that other check ever misses it, but skip the noisy traceback
+    print(f'Error reaching traefik daemon: {e.reason}', file=sys.stderr)
+    sys.exit(1)
 
 # Gernerate the list of routes
 routes = [ route['name'].removesuffix('-https@file') for route in traefik_routes if route['name'].endswith('-https@file') ]
