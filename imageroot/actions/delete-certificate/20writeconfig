@@ -18,6 +18,9 @@ def main():
         old_names = cert_helpers.remove_custom_cert_by_path(request['path'])
         if not old_names:
             exit_certificate_not_found_error('path', request['path'])
+        # Traefik keeps the removed certificate in its metrics until it
+        # restarts, and ns8-metrics would raise expiry alerts for it.
+        agent.run_helper("systemctl", "--user", "restart", "traefik")
     elif request['type'] == 'internal':
         if 'serial' in request:
             for dcert in cert_helpers.list_internal_certificates():
