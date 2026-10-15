@@ -23,6 +23,16 @@ def main():
     static_cfg = yaml.safe_load(open("traefik.yaml"))
     upgrade_to_v3(static_cfg)
     add_metrics(static_cfg) # 3.5+
+    disable_phone_home(static_cfg)
+
+def disable_phone_home(static_cfg):
+    global_cfg = static_cfg.setdefault('global', {})
+    if 'checkNewVersion' in global_cfg and 'sendAnonymousUsage' in global_cfg:
+        return # nothing to do, or manually configured
+    print("Disable Traefik new version check and anonymous usage stats")
+    global_cfg.setdefault('checkNewVersion', False)
+    global_cfg.setdefault('sendAnonymousUsage', False)
+    write_static_cfg(static_cfg)
 
 def add_metrics(static_cfg):
     if 'metrics' in static_cfg.get('entryPoints', {}):

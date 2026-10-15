@@ -10,7 +10,11 @@ set -e
 # Redirect any output to the journal (stderr)
 exec 1>&2
 
-cat >traefik.yaml <<EOF 
+cat >traefik.yaml <<EOF
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
 defaultEntryPoints:
   - http
   - https
