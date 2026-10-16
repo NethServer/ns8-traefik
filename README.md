@@ -604,6 +604,44 @@ Output:
 {"proxies": ["192.168.100.1"], "depth": 1}
 ```
 
+## Disable telemetry
+
+Traefik checks once a day for new releases on `update.traefik.io`, as
+described in the Traefik
+[data collection](https://doc.traefik.io/traefik/contributing/data-collection/)
+documentation. The first check runs 10 minutes after Traefik starts.
+If a new release exists, Traefik writes a warning in its log. If
+`update.traefik.io` is not reachable, Traefik writes a warning
+instead. The anonymous usage statistics are disabled by Traefik
+default, and the module does not enable them.
+
+The module keeps the check enabled, as set by the Traefik default. To
+disable it, edit the Traefik static configuration, the `traefik.yaml`
+file in the module state directory (for example
+`/home/traefik1/.config/state/traefik.yaml`). Add the `global` section
+at the top level of the file, or the `checkNewVersion` key if the
+section already exists:
+
+```yaml
+global:
+  checkNewVersion: false
+```
+
+Then restart the `traefik.service` user unit of the module, to apply
+the change. The restart interrupts HTTP traffic for a few seconds.
+Every node runs its own Traefik instance: edit the file of each of
+them.
+
+Traefik reads its static configuration only from the `traefik.yaml`
+file: command line flags and `TRAEFIK_*` environment variables, for
+example added to `PODMAN_RUN_OPTS`, are ignored.
+
+The setting is kept on module updates, but it is not restored from a
+backup: after a restore, edit the file again.
+
+To revert to the default, remove the `checkNewVersion` key, and the
+`global` section if it is left empty, then restart Traefik.
+
 ## Running tests locally
 
 This module uses the NS8 standard testing infrastructure. For instructions on how to run the test suite locally, refer to the [Running tests locally](https://github.com/NethServer/ns8-github-actions/blob/v1/README.md#running-tests-locally) section of the ns8-github-actions repository.
