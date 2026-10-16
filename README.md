@@ -616,30 +616,31 @@ instead. The anonymous usage statistics are disabled by Traefik
 default, and the module does not enable them.
 
 The module keeps the check enabled, as set by the Traefik default. To
-disable it, set `global.checkNewVersion` to `false` in the Traefik
-static configuration and restart Traefik:
+disable it, edit the Traefik static configuration, the `traefik.yaml`
+file in the module state directory (for example
+`/home/traefik1/.config/state/traefik.yaml`). Add the `global` section
+at the top level of the file, or the `checkNewVersion` key if the
+section already exists:
 
-```bash
-runagent -m traefik1 python3 -c 'import conf_helpers as c ; cfg = c.parse_yaml_config("traefik.yaml") ; cfg.setdefault("global", {})["checkNewVersion"] = False ; c.write_yaml_config(cfg, "traefik.yaml")'
-runagent -m traefik1 systemctl --user restart traefik.service
+```yaml
+global:
+  checkNewVersion: false
 ```
 
-Every node runs its own Traefik instance: repeat the commands for each
-of them. The restart interrupts HTTP traffic for a few seconds.
+Then restart the `traefik.service` user unit of the module, to apply
+the change. The restart interrupts HTTP traffic for a few seconds.
+Every node runs its own Traefik instance: edit the file of each of
+them.
 
 Traefik reads its static configuration only from the `traefik.yaml`
 file: command line flags and `TRAEFIK_*` environment variables, for
 example added to `PODMAN_RUN_OPTS`, are ignored.
 
 The setting is kept on module updates, but it is not restored from a
-backup: after a restore, run the commands again.
+backup: after a restore, edit the file again.
 
-To revert to the default, remove the setting:
-
-```bash
-runagent -m traefik1 python3 -c 'import conf_helpers as c ; cfg = c.parse_yaml_config("traefik.yaml") ; cfg.get("global", {}).pop("checkNewVersion", None) ; cfg.get("global") == {} and cfg.pop("global") ; c.write_yaml_config(cfg, "traefik.yaml")'
-runagent -m traefik1 systemctl --user restart traefik.service
-```
+To revert to the default, remove the `checkNewVersion` key, and the
+`global` section if it is left empty, then restart Traefik.
 
 ## Running tests locally
 
