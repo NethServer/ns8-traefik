@@ -604,6 +604,43 @@ Output:
 {"proxies": ["192.168.100.1"], "depth": 1}
 ```
 
+## Disable telemetry
+
+Traefik checks once a day for new releases on `update.traefik.io`, as
+described in the Traefik
+[data collection](https://doc.traefik.io/traefik/contributing/data-collection/)
+documentation. The first check runs 10 minutes after Traefik starts.
+If a new release exists, Traefik writes a warning in its log. If
+`update.traefik.io` is not reachable, Traefik writes a warning
+instead. The anonymous usage statistics are disabled by Traefik
+default, and the module does not enable them.
+
+The module keeps the check enabled, as set by the Traefik default. To
+disable it, set `global.checkNewVersion` to `false` in the Traefik
+static configuration and restart Traefik:
+
+```bash
+runagent -m traefik1 python3 -c 'import conf_helpers as c ; cfg = c.parse_yaml_config("traefik.yaml") ; cfg.setdefault("global", {})["checkNewVersion"] = False ; c.write_yaml_config(cfg, "traefik.yaml")'
+runagent -m traefik1 systemctl --user restart traefik.service
+```
+
+Every node runs its own Traefik instance: repeat the commands for each
+of them. The restart interrupts HTTP traffic for a few seconds.
+
+Traefik reads its static configuration only from the `traefik.yaml`
+file: command line flags and `TRAEFIK_*` environment variables, for
+example added to `PODMAN_RUN_OPTS`, are ignored.
+
+The setting is kept on module updates, but it is not restored from a
+backup: after a restore, run the commands again.
+
+To revert to the default, remove the setting:
+
+```bash
+runagent -m traefik1 python3 -c 'import conf_helpers as c ; cfg = c.parse_yaml_config("traefik.yaml") ; cfg.get("global", {}).pop("checkNewVersion", None) ; cfg.get("global") == {} and cfg.pop("global") ; c.write_yaml_config(cfg, "traefik.yaml")'
+runagent -m traefik1 systemctl --user restart traefik.service
+```
+
 ## Running tests locally
 
 This module uses the NS8 standard testing infrastructure. For instructions on how to run the test suite locally, refer to the [Running tests locally](https://github.com/NethServer/ns8-github-actions/blob/v1/README.md#running-tests-locally) section of the ns8-github-actions repository.
