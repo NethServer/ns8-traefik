@@ -19,7 +19,7 @@ roles are omitted.
 | `list-certificates` | certadm, fulladm |
 | `set-acme-server` | |
 | `get-acme-server` | |
-| `upload-certificate` | |
+| `upload-certificate` | certadm, fulladm |
 
 ## set-route
 
