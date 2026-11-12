@@ -28,6 +28,7 @@ certadm_actions=(
     set-default-certificate
     get-certificate
     list-certificates
+    upload-certificate
 )
 redis-exec SADD "${AGENT_ID}/roles/certadm" "${certadm_actions[@]}"
 
