@@ -23,6 +23,32 @@ def main():
     static_cfg = yaml.safe_load(open("traefik.yaml"))
     upgrade_to_v3(static_cfg)
     add_metrics(static_cfg) # 3.5+
+    fix_api_path()
+
+def fix_api_path():
+    api_config_path = "configs/_api.yml"
+    try:
+        with open(api_config_path) as ofile:
+            api_config = yaml.safe_load(ofile) or {}
+    except FileNotFoundError:
+        return  # No _api.yml to fix
+
+    try:
+        mw1 = api_config['http']['middlewares']['ApisEndpointMw1']
+        prefixes = mw1['stripPrefix']['prefixes']
+        router = api_config['http']['routers']['ApisEndpointHttp']
+    except (KeyError, TypeError) as ex:
+        print(f"WARNING: unexpected _api.yml structure: {ex}", file=sys.stderr)
+        return
+
+    template_prefix = '/{{env "API_PATH"}}'
+    if prefixes[0] == template_prefix:
+        return  # Already up to date
+
+    print("Fixing API path template in configs/_api.yml")
+    prefixes[0] = template_prefix
+    router['rule'] = 'PathPrefix(`/{{env "API_PATH"}}/api`)'
+    write_dynamic_config(api_config_path, api_config)
 
 def add_metrics(static_cfg):
     if 'metrics' in static_cfg.get('entryPoints', {}):
@@ -132,18 +158,16 @@ def write_dynamic_config(config_file, dynamic_config):
     """Atomically overwrite a Traefik dynamic config file with a new
     configuration."""
     global yaml_options
-    with open(config_file + ".tmp", "w") as ofile:
+    with agent.safe_open(config_file, "w") as ofile:
         yaml.safe_dump(dynamic_config, stream=ofile, **yaml_options)
-    os.rename(config_file + ".tmp", config_file)
     print(f"Dynamic configuration written to {config_file}")
 
 def write_static_cfg(static_cfg):
     """Atomically overwrite Traefik's static config file with a new
     configuration."""
     global yaml_options
-    with open("traefik.yaml.tmp", "w") as ofile:
+    with agent.safe_open("traefik.yaml", "w") as ofile:
         yaml.safe_dump(static_cfg, stream=ofile, **yaml_options)
-    os.rename("traefik.yaml.tmp", "traefik.yaml")
     print("Static configuration written to traefik.yaml")
 
 if __name__ == "__main__":
